@@ -1,0 +1,8 @@
+.env
+.cache
+__pycache__/
+*.pyc
+venv/
+
+# Raw export contains IP addresses — keep local only
+Spotify Extended Streaming History/

@@ -1,0 +1,963 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Your Spotify Story</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Mono:ital,wght@0,400;0,500;1,400&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg:       #0b0a09;
+  --bg2:      #131210;
+  --bg3:      #1b1916;
+  --border:   #2c2720;
+  --gold:     #f5c842;
+  --gold-dim: rgba(245,200,66,0.12);
+  --orange:   #ee7a35;
+  --text:     #f0ebe2;
+  --muted:    #877d6f;
+  --faint:    #4a4338;
+  --green:    #52b06a;
+  --red:      #dc5050;
+  --hd:       'Syne', sans-serif;
+  --mono:     'DM Mono', monospace;
+  --body:     'Figtree', sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--body);
+  font-size:15px;
+  line-height:1.6;
+  min-height:100vh;
+}
+/* grain overlay */
+body::after{
+  content:'';
+  position:fixed;inset:0;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+  opacity:.025;pointer-events:none;z-index:9999;
+}
+
+/* ── Loading ─────────────────────────────────────────────────────────── */
+#loading{
+  position:fixed;inset:0;
+  background:var(--bg);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  z-index:1000;gap:28px;
+  transition:opacity .5s;
+}
+.eq{display:flex;gap:5px;align-items:flex-end;height:44px}
+.eq span{
+  width:5px;background:var(--gold);border-radius:3px;
+  animation:eq 1.3s ease-in-out infinite;
+}
+.eq span:nth-child(1){height:16px;animation-delay:0s}
+.eq span:nth-child(2){height:36px;animation-delay:.18s}
+.eq span:nth-child(3){height:26px;animation-delay:.06s}
+.eq span:nth-child(4){height:44px;animation-delay:.12s}
+.eq span:nth-child(5){height:20px;animation-delay:.24s}
+.eq span:nth-child(6){height:40px;animation-delay:.09s}
+.eq span:nth-child(7){height:14px;animation-delay:.3s}
+@keyframes eq{0%,100%{transform:scaleY(.25)}50%{transform:scaleY(1)}}
+#load-msg{
+  font-family:var(--mono);font-size:11px;letter-spacing:.2em;
+  color:var(--muted);text-transform:uppercase;
+}
+
+/* ── App ─────────────────────────────────────────────────────────────── */
+#app{display:none}
+#app.ready{display:block}
+
+/* ── Nav ─────────────────────────────────────────────────────────────── */
+nav{
+  position:sticky;top:0;z-index:100;
+  background:rgba(11,10,9,.88);
+  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  border-bottom:1px solid var(--border);
+}
+.nav-inner{
+  max-width:1340px;margin:0 auto;padding:0 28px;
+  display:flex;align-items:center;
+  overflow-x:auto;scrollbar-width:none;
+}
+.nav-inner::-webkit-scrollbar{display:none}
+.nav-brand{
+  font-family:var(--hd);font-size:13px;font-weight:800;
+  color:var(--gold);white-space:nowrap;
+  padding:15px 20px 15px 0;margin-right:12px;
+  border-right:1px solid var(--border);letter-spacing:.04em;
+}
+.nav-link{
+  font-family:var(--mono);font-size:10px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--muted);text-decoration:none;
+  padding:16px 14px;white-space:nowrap;
+  transition:color .2s;position:relative;
+}
+.nav-link::after{
+  content:'';position:absolute;bottom:0;left:14px;right:14px;
+  height:2px;background:var(--gold);
+  transform:scaleX(0);transition:transform .2s;
+}
+.nav-link:hover{color:var(--text)}
+.nav-link.active{color:var(--gold)}
+.nav-link.active::after{transform:scaleX(1)}
+
+/* ── Layout ──────────────────────────────────────────────────────────── */
+main{max-width:1340px;margin:0 auto;padding:0 28px 100px}
+
+.section{padding-top:76px}
+.section-eyebrow{
+  font-family:var(--mono);font-size:10px;letter-spacing:.25em;
+  text-transform:uppercase;color:var(--gold);
+  display:flex;align-items:center;gap:10px;margin-bottom:10px;
+}
+.section-eyebrow::after{
+  content:'';height:1px;width:48px;background:var(--gold);opacity:.4;
+}
+.section-title{
+  font-family:var(--hd);
+  font-size:clamp(26px,3.8vw,42px);font-weight:800;line-height:1.05;
+  margin-bottom:36px;
+}
+
+/* ── Hero ────────────────────────────────────────────────────────────── */
+#overview{padding-top:72px}
+.hero-title{
+  font-family:var(--hd);
+  font-size:clamp(44px,7vw,86px);font-weight:800;line-height:.95;
+  margin-bottom:20px;
+}
+.hero-title em{color:var(--gold);font-style:normal}
+.hero-dates{
+  font-family:var(--mono);font-size:12px;color:var(--muted);
+  letter-spacing:.12em;margin-bottom:52px;
+}
+
+/* ── Stat grid ───────────────────────────────────────────────────────── */
+.stat-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(185px,1fr));
+  gap:12px;margin-bottom:12px;
+}
+.stat-card{
+  background:var(--bg2);border:1px solid var(--border);border-radius:14px;
+  padding:22px 20px;
+  opacity:0;transform:translateY(18px);
+  transition:opacity .55s ease,transform .55s ease,border-color .2s;
+}
+.stat-card.in{opacity:1;transform:translateY(0)}
+.stat-card:hover{border-color:var(--gold)}
+.stat-val{
+  font-family:var(--mono);
+  font-size:clamp(22px,2.6vw,34px);font-weight:500;
+  line-height:1.05;margin-bottom:6px;
+}
+.stat-val.g{color:var(--gold)}
+.stat-val.gr{color:var(--green)}
+.stat-lbl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em}
+.stat-sub{font-family:var(--mono);font-size:10px;color:var(--faint);margin-top:3px}
+
+/* ── Fact strip ──────────────────────────────────────────────────────── */
+.fact-strip{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));
+  gap:10px;margin-top:10px;
+}
+.fact{
+  background:var(--bg2);border:1px solid var(--border);border-radius:12px;
+  padding:16px 18px;display:flex;align-items:center;gap:14px;
+  font-size:13px;color:var(--muted);
+}
+.fact-ico{font-size:22px;flex-shrink:0}
+.fact strong{color:var(--text);font-family:var(--mono)}
+
+/* ── Cards / Charts ──────────────────────────────────────────────────── */
+.card{
+  background:var(--bg2);border:1px solid var(--border);border-radius:14px;
+  padding:26px;
+}
+.card-title{
+  font-family:var(--hd);font-size:16px;font-weight:700;
+  margin-bottom:22px;display:flex;align-items:baseline;gap:8px;
+}
+.card-title small{
+  font-family:var(--mono);font-size:10px;font-weight:400;
+  color:var(--muted);letter-spacing:.08em;
+}
+.chart-wrap{position:relative}
+
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.three-col{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+@media(max-width:900px){.two-col,.three-col{grid-template-columns:1fr}}
+
+/* ── Rank list ───────────────────────────────────────────────────────── */
+.rank-list{display:flex;flex-direction:column;gap:2px}
+.rank-item{
+  display:grid;grid-template-columns:32px 1fr auto;
+  align-items:center;gap:10px;padding:9px 10px;
+  border-radius:8px;transition:background .15s;
+  position:relative;overflow:hidden;
+}
+.rank-item::before{
+  content:'';position:absolute;inset:0;
+  background:var(--gold-dim);
+  transform:scaleX(var(--p,0));transform-origin:left;
+  transition:transform 1.1s cubic-bezier(.22,1,.36,1);
+}
+.rank-item:hover{background:var(--bg3)}
+.rn{font-family:var(--mono);font-size:11px;color:var(--faint);text-align:right}
+.rname{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rname small{display:block;font-size:11px;font-weight:400;color:var(--muted)}
+.rmeta{font-family:var(--mono);font-size:11px;color:var(--muted);text-align:right;white-space:nowrap;line-height:1.4}
+
+/* ── Data table ──────────────────────────────────────────────────────── */
+.dtable{width:100%;border-collapse:collapse;font-size:13px}
+.dtable th{
+  font-family:var(--mono);font-size:9px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--muted);padding:7px 10px;text-align:left;
+  border-bottom:1px solid var(--border);
+}
+.dtable td{padding:9px 10px;border-bottom:1px solid rgba(44,39,32,.45)}
+.dtable tr:hover td{background:var(--bg3)}
+.dtable .n{font-family:var(--mono);font-size:10px;color:var(--faint);width:36px}
+.dtable .ar{color:var(--muted);font-size:12px}
+.dtable .r{font-family:var(--mono);font-size:11px;color:var(--muted);text-align:right}
+
+/* ── Tabs ────────────────────────────────────────────────────────────── */
+.tab-bar{display:flex;border-bottom:1px solid var(--border);margin-bottom:22px}
+.tab-btn{
+  font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--muted);background:none;border:none;
+  padding:11px 18px;cursor:pointer;position:relative;transition:color .2s;
+}
+.tab-btn::after{
+  content:'';position:absolute;bottom:-1px;left:0;right:0;
+  height:2px;background:var(--gold);transform:scaleX(0);transition:transform .2s;
+}
+.tab-btn.on{color:var(--gold)}
+.tab-btn.on::after{transform:scaleX(1)}
+.tab-btn:hover{color:var(--text)}
+.tab-pane{display:none}.tab-pane.on{display:block}
+
+/* ── Year cards ──────────────────────────────────────────────────────── */
+.year-grid{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(185px,1fr));
+  gap:12px;
+}
+.ycard{
+  background:var(--bg2);border:1px solid var(--border);border-radius:14px;
+  padding:22px;transition:border-color .2s,transform .2s;
+}
+.ycard:hover{border-color:var(--gold);transform:translateY(-2px)}
+.ynum{font-family:var(--hd);font-size:40px;font-weight:800;color:var(--gold);line-height:1;margin-bottom:16px}
+.ys-lbl{font-family:var(--mono);font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--muted)}
+.ys-val{font-family:var(--mono);font-size:17px;color:var(--text);line-height:1.2;margin-bottom:10px}
+.y-artist{margin-top:14px;padding-top:14px;border-top:1px solid var(--border);font-size:12px;color:var(--muted)}
+.y-artist strong{display:block;font-size:13px;color:var(--text);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* ── Country bars ────────────────────────────────────────────────────── */
+.clist{display:flex;flex-direction:column;gap:10px}
+.citem{display:flex;align-items:center;gap:12px}
+.ccode{font-family:var(--mono);font-size:12px;font-weight:500;width:30px}
+.cbar-wrap{flex:1;height:5px;background:var(--border);border-radius:3px;overflow:hidden}
+.cbar{height:100%;background:linear-gradient(90deg,var(--gold),var(--orange));border-radius:3px;width:0;transition:width 1.3s cubic-bezier(.22,1,.36,1)}
+.ctime{font-family:var(--mono);font-size:10px;color:var(--muted);text-align:right;width:70px}
+
+/* ── Platform list ───────────────────────────────────────────────────── */
+.plat-list{display:flex;flex-direction:column;gap:9px;margin-top:18px}
+.pitem{display:flex;align-items:center;gap:10px;font-size:13px}
+.pdot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.pname{flex:1}
+.ppct{font-family:var(--mono);font-size:11px;color:var(--muted)}
+
+/* ── Podcast list ────────────────────────────────────────────────────── */
+.pod-list{display:flex;flex-direction:column;gap:2px}
+.podi{display:flex;align-items:center;gap:12px;padding:9px 8px;border-radius:8px;transition:background .15s}
+.podi:hover{background:var(--bg3)}
+.pod-rk{font-family:var(--mono);font-size:11px;color:var(--faint);width:26px;text-align:right;flex-shrink:0}
+.pod-nm{flex:1;font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pod-bar-w{width:80px;height:4px;background:var(--border);border-radius:2px;overflow:hidden;flex-shrink:0}
+.pod-bar{height:100%;background:var(--orange);border-radius:2px;width:0;transition:width 1.2s cubic-bezier(.22,1,.36,1)}
+.pod-t{font-family:var(--mono);font-size:10px;color:var(--muted);width:68px;text-align:right;flex-shrink:0}
+
+/* ── History browser ─────────────────────────────────────────────────── */
+.h-ctrl{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px;align-items:center}
+.h-search{
+  flex:1;min-width:180px;
+  background:var(--bg3);border:1px solid var(--border);border-radius:8px;
+  padding:9px 14px;color:var(--text);font-family:var(--body);font-size:13px;outline:none;
+  transition:border-color .2s;
+}
+.h-search:focus{border-color:var(--gold)}
+.h-sel{
+  background:var(--bg3);border:1px solid var(--border);border-radius:8px;
+  padding:9px 12px;color:var(--text);font-family:var(--mono);font-size:11px;
+  outline:none;cursor:pointer;transition:border-color .2s;
+}
+.h-sel:focus{border-color:var(--gold)}
+.h-cnt{font-family:var(--mono);font-size:11px;color:var(--muted);white-space:nowrap}
+.htable{width:100%;border-collapse:collapse}
+.htable th{
+  font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--muted);padding:7px 10px;text-align:left;border-bottom:1px solid var(--border);
+}
+.htable td{padding:8px 10px;font-size:12px;border-bottom:1px solid rgba(44,39,32,.35)}
+.htable tr:hover td{background:var(--bg3)}
+.hd{font-family:var(--mono);font-size:11px;color:var(--muted);white-space:nowrap}
+.har{color:var(--muted)}
+.hso{font-weight:500}
+.hal{color:var(--muted);max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hdu{font-family:var(--mono);font-size:11px;color:var(--muted);text-align:right}
+.hsk{text-align:center}
+.dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--red)}
+.dot.ok{background:var(--green)}
+.h-loading{text-align:center;padding:56px;font-family:var(--mono);font-size:12px;color:var(--muted);letter-spacing:.1em}
+.pager{display:flex;justify-content:center;align-items:center;gap:6px;margin-top:22px;flex-wrap:wrap}
+.pbtn{
+  background:var(--bg3);border:1px solid var(--border);border-radius:6px;
+  padding:5px 11px;color:var(--muted);font-family:var(--mono);font-size:11px;
+  cursor:pointer;transition:all .15s;
+}
+.pbtn:hover:not([disabled]){border-color:var(--gold);color:var(--gold)}
+.pbtn.on{background:var(--gold);color:var(--bg);border-color:var(--gold)}
+.pbtn[disabled]{opacity:.3;cursor:default}
+.pinfo{font-family:var(--mono);font-size:11px;color:var(--muted);padding:0 6px}
+
+/* ── Fade-in animation ───────────────────────────────────────────────── */
+.fi{opacity:0;transform:translateY(22px);transition:opacity .65s ease,transform .65s ease}
+.fi.in{opacity:1;transform:translateY(0)}
+
+/* ── Scrollbar ───────────────────────────────────────────────────────── */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--muted)}
+</style>
+</head>
+<body>
+
+<!-- Loading -->
+<div id="loading">
+  <div class="eq">
+    <span></span><span></span><span></span><span></span>
+    <span></span><span></span><span></span>
+  </div>
+  <div id="load-msg">Crunching 11 years of music…</div>
+</div>
+
+<!-- App -->
+<div id="app">
+  <nav>
+    <div class="nav-inner">
+      <div class="nav-brand">&#9834; SOUNDTRACK</div>
+      <a class="nav-link" href="#overview">Overview</a>
+      <a class="nav-link" href="#timeline">Timeline</a>
+      <a class="nav-link" href="#habits">Habits</a>
+      <a class="nav-link" href="#top">Top Lists</a>
+      <a class="nav-link" href="#years">Years</a>
+      <a class="nav-link" href="#devices">Devices</a>
+      <a class="nav-link" href="#podcasts">Podcasts</a>
+      <a class="nav-link" href="#history">History</a>
+    </div>
+  </nav>
+
+  <main>
+
+    <!-- OVERVIEW -->
+    <section id="overview" class="section">
+      <h1 class="hero-title" id="hero-title">Your Musical<br><em>Life</em></h1>
+      <div class="hero-dates" id="hero-dates">Loading…</div>
+      <div class="stat-grid" id="stat-grid"></div>
+      <div class="fact-strip" id="fact-strip"></div>
+    </section>
+
+    <!-- TIMELINE -->
+    <section id="timeline" class="section fi">
+      <div class="section-eyebrow">Your Journey</div>
+      <h2 class="section-title">Listening<br>Over Time</h2>
+      <div class="card">
+        <div class="card-title">Hours per month <small>all time</small></div>
+        <div class="chart-wrap" style="height:260px"><canvas id="cMonth"></canvas></div>
+      </div>
+    </section>
+
+    <!-- HABITS -->
+    <section id="habits" class="section fi">
+      <div class="section-eyebrow">Patterns</div>
+      <h2 class="section-title">When You<br>Listen</h2>
+      <div class="two-col">
+        <div class="card">
+          <div class="card-title">Hour of day <small>UTC</small></div>
+          <div class="chart-wrap" style="height:210px"><canvas id="cHour"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Day of week</div>
+          <div class="chart-wrap" style="height:210px"><canvas id="cWeek"></canvas></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TOP LISTS -->
+    <section id="top" class="section fi">
+      <div class="section-eyebrow">Favorites</div>
+      <h2 class="section-title">Artists, Songs<br>&amp; Albums</h2>
+      <div class="tab-bar">
+        <button class="tab-btn on" data-tab="t-artists">Artists</button>
+        <button class="tab-btn" data-tab="t-songs">Songs</button>
+        <button class="tab-btn" data-tab="t-albums">Albums</button>
+      </div>
+      <div id="t-artists" class="tab-pane on">
+        <div class="two-col">
+          <div class="card">
+            <div class="card-title">Top 20 <small>by hours</small></div>
+            <div class="chart-wrap" style="height:500px"><canvas id="cArtist"></canvas></div>
+          </div>
+          <div class="card">
+            <div class="card-title">Top 50 <small>full ranking</small></div>
+            <div class="rank-list" id="artist-list"></div>
+          </div>
+        </div>
+      </div>
+      <div id="t-songs" class="tab-pane">
+        <div class="card">
+          <div class="card-title">Top 100 Songs <small>by total listening time</small></div>
+          <table class="dtable">
+            <thead><tr><th>#</th><th>Song</th><th>Artist</th><th>Album</th><th style="text-align:right">Plays</th><th style="text-align:right">Time</th></tr></thead>
+            <tbody id="songs-body"></tbody>
+          </table>
+        </div>
+      </div>
+      <div id="t-albums" class="tab-pane">
+        <div class="card">
+          <div class="card-title">Top 100 Albums <small>by total listening time</small></div>
+          <table class="dtable">
+            <thead><tr><th>#</th><th>Album</th><th>Artist</th><th style="text-align:right">Plays</th><th style="text-align:right">Time</th></tr></thead>
+            <tbody id="albums-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- YEARS -->
+    <section id="years" class="section fi">
+      <div class="section-eyebrow">A Decade &amp; More</div>
+      <h2 class="section-title">Year by Year</h2>
+      <div class="card" style="margin-bottom:12px">
+        <div class="card-title">Annual hours <small>per year</small></div>
+        <div class="chart-wrap" style="height:190px"><canvas id="cYear"></canvas></div>
+      </div>
+      <div class="year-grid" id="year-grid"></div>
+    </section>
+
+    <!-- DEVICES -->
+    <section id="devices" class="section fi">
+      <div class="section-eyebrow">Where &amp; How</div>
+      <h2 class="section-title">Devices &amp;<br>Countries</h2>
+      <div class="two-col">
+        <div class="card">
+          <div class="card-title">By platform</div>
+          <div class="chart-wrap" style="height:210px"><canvas id="cPlat"></canvas></div>
+          <div class="plat-list" id="plat-list"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">By country <small>top 12</small></div>
+          <div class="clist" id="clist"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PODCASTS -->
+    <section id="podcasts" class="section fi">
+      <div class="section-eyebrow">Spoken Word</div>
+      <h2 class="section-title">Podcasts</h2>
+      <div class="two-col">
+        <div class="card" id="pod-stats"></div>
+        <div class="card">
+          <div class="card-title">Top shows <small>by time</small></div>
+          <div class="pod-list" id="pod-list"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- HISTORY -->
+    <section id="history" class="section fi">
+      <div class="section-eyebrow">Full Archive</div>
+      <h2 class="section-title">Browse Your<br>History</h2>
+      <div class="card">
+        <div class="h-ctrl">
+          <input class="h-search" id="hs" type="text" placeholder="Search artist or song…">
+          <select class="h-sel" id="hy"></select>
+          <select class="h-sel" id="hsk">
+            <option value="">All plays</option>
+            <option value="0">Completed</option>
+            <option value="1">Skipped</option>
+          </select>
+          <div class="h-cnt" id="hcnt"></div>
+        </div>
+        <div id="hist-area"><div class="h-loading">History loads when you scroll here…</div></div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script>
+// ── Utils ──────────────────────────────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+function fmtH(ms){ const h=Math.floor(ms/3.6e6); return h>=1000?`${(h/1000).toFixed(1)}k h`:`${h.toLocaleString()}h` }
+function fmtHm(ms){ const h=Math.floor(ms/3.6e6),m=Math.floor(ms%3.6e6/6e4); return h?`${h.toLocaleString()}h ${m}m`:`${m}m` }
+function fmtMm(ms){ const m=Math.floor(ms/6e4),s=Math.floor(ms%6e4/1e3); return `${m}:${String(s).padStart(2,'0')}` }
+function fmtNum(n){ return Number(n).toLocaleString() }
+
+// ── Chart defaults ─────────────────────────────────────────────────────────────
+Chart.defaults.color = '#877d6f';
+Chart.defaults.borderColor = '#2c2720';
+Chart.defaults.font.family = "'DM Mono', monospace";
+Chart.defaults.font.size = 10;
+
+const GOLD='#f5c842', ORANGE='#ee7a35', MUTED='#877d6f', BG3='#1b1916';
+const PALETTE=['#f5c842','#ee7a35','#dc5050','#52b06a','#4a9fd5','#9b6bd4','#d45b9b','#5bd4c4'];
+
+// ── Main init ──────────────────────────────────────────────────────────────────
+async function init(){
+  try{
+    const stats = await fetch('data/stats.json').then(r=>{
+      if(!r.ok) throw new Error(`Cannot load data/stats.json — run process_data.py first`);
+      return r.json();
+    });
+    renderOverview(stats);
+    renderTimeline(stats);
+    renderHabits(stats);
+    renderTopLists(stats);
+    renderYears(stats);
+    renderDevices(stats);
+    renderPodcasts(stats);
+    setupHistory();
+    setupTabs();
+    setupNav();
+    setupFadeIns();
+
+    // Hide loader, show app
+    $('loading').style.opacity='0';
+    setTimeout(()=>{
+      $('loading').style.display='none';
+      $('app').classList.add('ready');
+      $('stat-grid').querySelectorAll('.stat-card').forEach((c,i)=>
+        setTimeout(()=>c.classList.add('in'), i*75)
+      );
+    },480);
+  } catch(e){
+    $('load-msg').textContent = e.message;
+    console.error(e);
+  }
+}
+
+// ── Overview ───────────────────────────────────────────────────────────────────
+function renderOverview(stats){
+  const ov = stats.overview;
+  const yrs = Math.round((new Date(ov.last_play)-new Date(ov.first_play))/(365.25*864e5));
+  const totalH = Math.floor(ov.total_ms/3.6e6);
+
+  $('hero-title').innerHTML = `${yrs} Years of<br><em>Your Music</em>`;
+  $('hero-dates').textContent = `${ov.first_play}  →  ${ov.last_play}`;
+
+  const cards=[
+    {v:`${totalH.toLocaleString()}h`, l:'Listening Time', s:`${Math.round(totalH/24).toLocaleString()} full days of audio`, c:'g'},
+    {v:fmtNum(ov.total_plays), l:'Total Plays', s:`avg ${Math.round(ov.total_plays/ov.active_days)} plays per active day`},
+    {v:fmtNum(ov.unique_artists), l:'Unique Artists', s:`discovered over ${yrs} years`},
+    {v:fmtNum(ov.unique_songs), l:'Unique Songs', s:`across ${fmtNum(ov.unique_albums)} albums`},
+    {v:fmtNum(ov.active_days), l:'Active Days', s:`${Math.round(ov.active_days/ov.span_days*100)}% of the ${fmtNum(ov.span_days)}-day span`},
+    {v:`${ov.longest_streak}`, l:'Day Streak', s:'longest consecutive listening streak', c:'gr'},
+  ];
+  $('stat-grid').innerHTML = cards.map(c=>`
+    <div class="stat-card">
+      <div class="stat-val ${c.c||''}">${c.v}</div>
+      <div class="stat-lbl">${c.l}</div>
+      <div class="stat-sub">${c.s}</div>
+    </div>`).join('');
+
+  const facts=[
+    {i:'⏩',t:`Skipped <strong>${Math.round(ov.skip_rate*100)}%</strong> of songs`},
+    {i:'🔀',t:`<strong>${Math.round(ov.shuffle_rate*100)}%</strong> of listens on shuffle`},
+    {i:'📴',t:`<strong>${Math.round(ov.offline_rate*100)}%</strong> of listens offline`},
+    {i:'🔥',t:`Busiest day: <strong>${ov.busiest_day}</strong> · ${fmtHm(ov.busiest_day_ms)}`},
+  ];
+  $('fact-strip').innerHTML = facts.map(f=>`
+    <div class="fact">
+      <span class="fact-ico">${f.i}</span>
+      <span>${f.t}</span>
+    </div>`).join('');
+}
+
+// ── Timeline ───────────────────────────────────────────────────────────────────
+function renderTimeline(stats){
+  const months=stats.by_month;
+  const labels=months.map(m=>m.month);
+  const data=months.map(m=>+(m.ms/3.6e6).toFixed(2));
+
+  const ctx=$('cMonth').getContext('2d');
+  const grad=ctx.createLinearGradient(0,0,0,260);
+  grad.addColorStop(0,'rgba(245,200,66,.28)');
+  grad.addColorStop(1,'rgba(245,200,66,0)');
+
+  new Chart(ctx,{
+    type:'line',
+    data:{labels,datasets:[{data,borderColor:GOLD,borderWidth:2,backgroundColor:grad,fill:true,pointRadius:0,pointHoverRadius:5,tension:.4}]},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.parsed.y.toFixed(1)}h`}}},
+      scales:{
+        x:{ticks:{maxRotation:0,callback:(v,i)=>{const l=labels[i];return l?.slice(5)==='01'?l.slice(0,4):null}},grid:{display:false}},
+        y:{ticks:{callback:v=>`${v}h`},grid:{color:'rgba(44,39,32,.5)'}}
+      }
+    }
+  });
+}
+
+// ── Habits ─────────────────────────────────────────────────────────────────────
+function renderHabits(stats){
+  const hp=stats.by_hour.plays, wp=stats.by_weekday.plays;
+
+  new Chart($('cHour'),{
+    type:'bar',
+    data:{
+      labels:hp.map((_,i)=>`${i}h`),
+      datasets:[{data:hp,
+        backgroundColor:hp.map((_,i)=>i>=22||i<6?`rgba(238,122,53,.75)`:i<12?`rgba(245,200,66,.55)`:`rgba(245,200,66,.82)`),
+        borderRadius:3,borderSkipped:false}]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${fmtNum(c.parsed.y)} plays`}}},
+      scales:{x:{grid:{display:false},ticks:{font:{size:9}}},y:{grid:{color:'rgba(44,39,32,.5)'}}}
+    }
+  });
+
+  new Chart($('cWeek'),{
+    type:'bar',
+    data:{
+      labels:['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
+      datasets:[{data:wp,backgroundColor:GOLD+'cc',borderRadius:5,borderSkipped:false}]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${fmtNum(c.parsed.y)} plays`}}},
+      scales:{x:{grid:{display:false}},y:{grid:{color:'rgba(44,39,32,.5)'}}}
+    }
+  });
+}
+
+// ── Top lists ──────────────────────────────────────────────────────────────────
+function renderTopLists(stats){
+  // Artist bar chart (top 20)
+  const t20=stats.top_artists.slice(0,20);
+  new Chart($('cArtist'),{
+    type:'bar',
+    data:{
+      labels:t20.map(a=>a.name.length>22?a.name.slice(0,20)+'…':a.name),
+      datasets:[{
+        data:t20.map(a=>+(a.ms/3.6e6).toFixed(1)),
+        backgroundColor:t20.map((_,i)=>`rgba(245,200,66,${.92-i*.03})`),
+        borderRadius:4,borderSkipped:false
+      }]
+    },
+    options:{
+      indexAxis:'y',responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.parsed.x.toFixed(1)}h`}}},
+      scales:{
+        x:{grid:{color:'rgba(44,39,32,.5)'},ticks:{callback:v=>`${v}h`}},
+        y:{grid:{display:false},ticks:{font:{size:10}}}
+      }
+    }
+  });
+
+  // Artist rank list (top 50)
+  const maxMs=stats.top_artists[0]?.ms||1;
+  $('artist-list').innerHTML=stats.top_artists.slice(0,50).map((a,i)=>`
+    <div class="rank-item" data-p="${(a.ms/maxMs).toFixed(3)}" style="--p:0">
+      <span class="rn">${i+1}</span>
+      <div class="rname">${esc(a.name)}<small>First heard ${a.first_heard}</small></div>
+      <div class="rmeta">${fmtH(a.ms)}<br>${fmtNum(a.plays)} plays</div>
+    </div>`).join('');
+
+  // Animate bars when visible
+  animateRankBars('artist-list');
+
+  // Songs table
+  $('songs-body').innerHTML=stats.top_songs.map((s,i)=>`
+    <tr>
+      <td class="n">${i+1}</td>
+      <td>${esc(s.name)}</td>
+      <td class="ar">${esc(s.artist)}</td>
+      <td class="ar">${esc(s.album)}</td>
+      <td class="r">${s.plays}</td>
+      <td class="r">${fmtH(s.ms)}</td>
+    </tr>`).join('');
+
+  // Albums table
+  $('albums-body').innerHTML=stats.top_albums.map((a,i)=>`
+    <tr>
+      <td class="n">${i+1}</td>
+      <td>${esc(a.name)}</td>
+      <td class="ar">${esc(a.artist)}</td>
+      <td class="r">${a.plays}</td>
+      <td class="r">${fmtH(a.ms)}</td>
+    </tr>`).join('');
+}
+
+function animateRankBars(listId){
+  const el=$(listId);
+  if(!el) return;
+  const obs=new IntersectionObserver(([e])=>{
+    if(e.isIntersecting){
+      obs.disconnect();
+      el.querySelectorAll('.rank-item[data-p]').forEach(it=>{
+        requestAnimationFrame(()=>requestAnimationFrame(()=>{
+          it.style.setProperty('--p', it.dataset.p);
+        }));
+      });
+    }
+  },{threshold:.08});
+  obs.observe(el);
+}
+
+// ── Years ──────────────────────────────────────────────────────────────────────
+function renderYears(stats){
+  const ys=Object.entries(stats.by_year).sort(([a],[b])=>a.localeCompare(b));
+  const hours=ys.map(([,d])=>Math.round(d.ms/3.6e6));
+  const maxH=Math.max(...hours);
+
+  new Chart($('cYear'),{
+    type:'bar',
+    data:{
+      labels:ys.map(([y])=>y),
+      datasets:[{
+        data:hours,
+        backgroundColor:ys.map((_,i)=>`rgba(245,200,66,${.35+(i/ys.length)*.62})`),
+        borderRadius:5,borderSkipped:false
+      }]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.parsed.y}h`}}},
+      scales:{x:{grid:{display:false}},y:{ticks:{callback:v=>`${v}h`},grid:{color:'rgba(44,39,32,.5)'}}}
+    }
+  });
+
+  $('year-grid').innerHTML=ys.map(([y,d])=>`
+    <div class="ycard">
+      <div class="ynum">${y}</div>
+      <div class="ys-lbl">Listening time</div>
+      <div class="ys-val">${fmtHm(d.ms)}</div>
+      <div class="ys-lbl">Plays</div>
+      <div class="ys-val">${fmtNum(d.plays)}</div>
+      <div class="ys-lbl">Artists</div>
+      <div class="ys-val">${fmtNum(d.unique_artists)}</div>
+      ${d.top_artist?`
+        <div class="y-artist">Top artist
+          <strong>${esc(d.top_artist)}</strong>
+        </div>`:''}
+    </div>`).join('');
+}
+
+// ── Devices ────────────────────────────────────────────────────────────────────
+function renderDevices(stats){
+  const plats=Object.entries(stats.platforms);
+  const totalMs=plats.reduce((s,[,v])=>s+v.ms,0);
+
+  new Chart($('cPlat'),{
+    type:'doughnut',
+    data:{
+      labels:plats.map(([k])=>k),
+      datasets:[{data:plats.map(([,v])=>v.ms),backgroundColor:PALETTE,borderWidth:0,hoverOffset:5}]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,cutout:'66%',
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.label}: ${(c.parsed/totalMs*100).toFixed(1)}%`}}}
+    }
+  });
+
+  $('plat-list').innerHTML=plats.map(([nm,d],i)=>`
+    <div class="pitem">
+      <span class="pdot" style="background:${PALETTE[i]||'#666'}"></span>
+      <span class="pname">${nm}</span>
+      <span class="ppct">${(d.ms/totalMs*100).toFixed(1)}%</span>
+    </div>`).join('');
+
+  // Countries with animated bars
+  const ctrs=stats.countries.slice(0,12);
+  const maxMs=ctrs[0]?.ms||1;
+  $('clist').innerHTML=ctrs.map(c=>`
+    <div class="citem">
+      <span class="ccode">${c.code}</span>
+      <div class="cbar-wrap"><div class="cbar" data-w="${(c.ms/maxMs*100).toFixed(1)}"></div></div>
+      <span class="ctime">${fmtH(c.ms)}</span>
+    </div>`).join('');
+
+  const obs=new IntersectionObserver(([e])=>{
+    if(e.isIntersecting){
+      obs.disconnect();
+      $('clist').querySelectorAll('.cbar').forEach(b=>b.style.width=b.dataset.w+'%');
+    }
+  },{threshold:.2});
+  obs.observe($('clist'));
+}
+
+// ── Podcasts ───────────────────────────────────────────────────────────────────
+function renderPodcasts(stats){
+  const po=stats.podcast_overview;
+  $('pod-stats').innerHTML=`
+    <div class="card-title">Podcast Stats</div>
+    <div style="display:flex;flex-direction:column;gap:22px;padding-top:4px">
+      <div><div class="stat-val g">${fmtHm(po.total_ms)}</div><div class="stat-lbl">Total podcast time</div></div>
+      <div><div class="stat-val">${fmtNum(po.total_plays)}</div><div class="stat-lbl">Episodes played</div></div>
+      <div><div class="stat-val">${fmtNum(po.unique_shows)}</div><div class="stat-lbl">Unique shows</div></div>
+    </div>`;
+
+  const top=stats.top_podcasts.slice(0,20), maxMs=top[0]?.ms||1;
+  $('pod-list').innerHTML=top.map((s,i)=>`
+    <div class="podi">
+      <span class="pod-rk">${i+1}</span>
+      <span class="pod-nm">${esc(s.name)}</span>
+      <div class="pod-bar-w"><div class="pod-bar" data-w="${(s.ms/maxMs*100).toFixed(1)}"></div></div>
+      <span class="pod-t">${fmtH(s.ms)}</span>
+    </div>`).join('');
+
+  const obs=new IntersectionObserver(([e])=>{
+    if(e.isIntersecting){obs.disconnect();$('pod-list').querySelectorAll('.pod-bar').forEach(b=>b.style.width=b.dataset.w+'%')}
+  },{threshold:.2});
+  obs.observe($('pod-list'));
+}
+
+// ── History browser ────────────────────────────────────────────────────────────
+let HD=null, FH=[], hPage=0;
+const PG=100;
+
+function setupHistory(){
+  const sec=$('history');
+  const obs=new IntersectionObserver(([e])=>{
+    if(e.isIntersecting){obs.disconnect();loadHistory()}
+  },{rootMargin:'600px'});
+  obs.observe(sec);
+}
+
+async function loadHistory(){
+  $('hist-area').innerHTML='<div class="h-loading">Loading your complete history…</div>';
+  try{
+    HD=await fetch('data/history.json').then(r=>r.json());
+    // Populate year dropdown
+    const yrs=[...new Set(HD.map(r=>r[0].slice(0,4)))].sort().reverse();
+    $('hy').innerHTML='<option value="">All years</option>'+yrs.map(y=>`<option>${y}</option>`).join('');
+    FH=HD; renderHist();
+    let deb;
+    $('hs').addEventListener('input',()=>{clearTimeout(deb);deb=setTimeout(filterHist,220)});
+    $('hy').addEventListener('change',filterHist);
+    $('hsk').addEventListener('change',filterHist);
+  } catch(e){
+    $('hist-area').innerHTML=`<div class="h-loading">Error: ${e.message}</div>`;
+  }
+}
+
+function filterHist(){
+  const q=$('hs').value.toLowerCase().trim();
+  const yr=$('hy').value;
+  const sk=$('hsk').value;
+  FH=HD.filter(r=>{
+    if(yr&&!r[0].startsWith(yr)) return false;
+    if(sk!==''&&String(r[5])!==sk) return false;
+    if(q&&!r[1].toLowerCase().includes(q)&&!r[2].toLowerCase().includes(q)) return false;
+    return true;
+  });
+  hPage=0; renderHist();
+}
+
+function renderHist(){
+  const total=FH.length, start=hPage*PG, end=Math.min(start+PG,total);
+  const rows=FH.slice(start,end).map(r=>`
+    <tr>
+      <td class="hd">${r[0].replace('T',' ')}</td>
+      <td class="har">${esc(r[1])}</td>
+      <td class="hso">${esc(r[2])}</td>
+      <td class="hal">${esc(r[3])}</td>
+      <td class="hdu">${fmtMm(r[4])}</td>
+      <td class="hsk"><span class="dot${r[5]?'':' ok'}"></span></td>
+    </tr>`).join('');
+
+  const tp=Math.ceil(total/PG);
+  $('hcnt').textContent=`${fmtNum(total)} plays`;
+  $('hist-area').innerHTML=`
+    <table class="htable">
+      <thead><tr><th>Date</th><th>Artist</th><th>Song</th><th>Album</th><th style="text-align:right">Dur</th><th style="text-align:center">✓</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <div class="pager">
+      <button class="pbtn" ${hPage===0?'disabled':''} onclick="gp(${hPage-1})">←</button>
+      ${pgNums(hPage,tp).map(p=>p==='…'?`<span class="pinfo">…</span>`:`<button class="pbtn${p===hPage?' on':''}" onclick="gp(${p})">${p+1}</button>`).join('')}
+      <button class="pbtn" ${hPage>=tp-1?'disabled':''} onclick="gp(${hPage+1})">→</button>
+      <span class="pinfo">${fmtNum(start+1)}–${fmtNum(end)} of ${fmtNum(total)}</span>
+    </div>`;
+}
+
+function pgNums(cur,tot){
+  if(tot<=7) return Array.from({length:tot},(_,i)=>i);
+  const a=[0];
+  if(cur>3) a.push('…');
+  for(let i=Math.max(1,cur-1);i<=Math.min(tot-2,cur+1);i++) a.push(i);
+  if(cur<tot-4) a.push('…');
+  if(tot>1) a.push(tot-1);
+  return a;
+}
+
+function gp(p){
+  hPage=p; renderHist();
+  $('history').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+// ── Tabs ───────────────────────────────────────────────────────────────────────
+function setupTabs(){
+  document.querySelectorAll('.tab-btn').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      const t=btn.dataset.tab;
+      document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('on'));
+      document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('on'));
+      btn.classList.add('on');
+      $(t).classList.add('on');
+    });
+  });
+}
+
+// ── Nav active ─────────────────────────────────────────────────────────────────
+function setupNav(){
+  const sections=document.querySelectorAll('section[id]');
+  const links=document.querySelectorAll('.nav-link');
+  const obs=new IntersectionObserver(entries=>{
+    entries.forEach(e=>{
+      if(e.isIntersecting){
+        links.forEach(l=>l.classList.remove('active'));
+        const l=document.querySelector(`.nav-link[href="#${e.target.id}"]`);
+        if(l){l.classList.add('active');l.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'})}
+      }
+    });
+  },{threshold:.2,rootMargin:'-80px 0px -55% 0px'});
+  sections.forEach(s=>obs.observe(s));
+}
+
+// ── Scroll fade-ins ────────────────────────────────────────────────────────────
+function setupFadeIns(){
+  const obs=new IntersectionObserver(entries=>{
+    entries.forEach(e=>{if(e.isIntersecting) e.target.classList.add('in')});
+  },{threshold:.08});
+  document.querySelectorAll('.fi').forEach(el=>obs.observe(el));
+}
+
+// ── Go ─────────────────────────────────────────────────────────────────────────
+init();
+</script>
+</body>
+</html>
