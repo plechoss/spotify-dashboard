@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Your Spotify Story</title>
+<title>Spotify Replay</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Mono:ital,wght@0,400;0,500;1,400&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -279,6 +279,29 @@ main{max-width:1340px;margin:0 auto;padding:0 28px 100px}
 .ys-val{font-family:var(--mono);font-size:17px;color:var(--text);line-height:1.2;margin-bottom:10px}
 .y-artist{margin-top:14px;padding-top:14px;border-top:1px solid var(--border);font-size:12px;color:var(--muted)}
 .y-artist strong{display:block;font-size:13px;color:var(--text);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#ye-year-card .ycard.ye-summary{
+  padding:18px 20px;
+  display:grid;grid-template-columns:auto 1fr;gap:16px;align-items:start;
+}
+#ye-year-card .ye-summary .ynum{
+  margin-bottom:0;
+  font-size:46px;
+  line-height:.9;
+}
+#ye-year-card .ye-summary-main{min-width:0}
+#ye-year-card .ye-summary-stats{
+  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;
+}
+#ye-year-card .ye-summary-stat .ys-lbl{margin-bottom:4px}
+#ye-year-card .ye-summary-stat .ys-val{margin-bottom:0}
+#ye-year-card .ye-summary .y-artist{
+  margin-top:12px;padding-top:12px;
+}
+@media(max-width:900px){
+  #ye-year-card .ycard.ye-summary{grid-template-columns:1fr}
+  #ye-year-card .ye-summary .ynum{font-size:40px}
+  #ye-year-card .ye-summary-stats{grid-template-columns:1fr}
+}
 
 /* ── Country bars ────────────────────────────────────────────────────── */
 .clist{display:flex;flex-direction:column;gap:10px}
@@ -555,7 +578,7 @@ main{max-width:1340px;margin:0 auto;padding:0 28px 100px}
 <!-- Welcome -->
 <div id="welcome">
   <div class="wl-inner">
-    <div class="wl-eyebrow">&#9834; Spotify Stats</div>
+    <div class="wl-eyebrow">&#9834; Spotify Replay</div>
     <h1 class="wl-title">Your Musical<br><em>Story</em></h1>
     <p class="wl-sub">Drop your Spotify extended streaming history files and explore your listening — top artists, songs, albums, habits, and more. Processed entirely in your browser. Share a link with anyone.</p>
 
@@ -604,7 +627,7 @@ main{max-width:1340px;margin:0 auto;padding:0 28px 100px}
 <div id="app">
   <nav>
     <div class="nav-inner">
-      <div class="nav-brand">&#9834; SOUNDTRACK</div>
+      <div class="nav-brand">&#9834; REPLAY</div>
       <a class="nav-link" href="#overview">Overview</a>
       <a class="nav-link" href="#timeline">Timeline</a>
       <a class="nav-link" href="#habits">Habits</a>
@@ -1278,18 +1301,28 @@ function renderYearExplorer(stats){
 
     if(yearCard){
       yearCard.innerHTML = `
-        <div class="ycard">
+        <div class="ycard ye-summary">
           <div class="ynum">${y}</div>
-          <div class="ys-lbl">Listening time</div>
-          <div class="ys-val">${fmtHm(yd.ms)}</div>
-          <div class="ys-lbl">Plays</div>
-          <div class="ys-val">${fmtNum(yd.plays)}</div>
-          <div class="ys-lbl">Artists</div>
-          <div class="ys-val">${fmtNum(yd.unique_artists)}</div>
-          ${yd.top_artist?`
-            <div class="y-artist">Top artist
-              <strong>${esc(yd.top_artist)}</strong>
-            </div>`:''}
+          <div class="ye-summary-main">
+            <div class="ye-summary-stats">
+              <div class="ye-summary-stat">
+                <div class="ys-lbl">Listening time</div>
+                <div class="ys-val">${fmtHm(yd.ms)}</div>
+              </div>
+              <div class="ye-summary-stat">
+                <div class="ys-lbl">Plays</div>
+                <div class="ys-val">${fmtNum(yd.plays)}</div>
+              </div>
+              <div class="ye-summary-stat">
+                <div class="ys-lbl">Artists</div>
+                <div class="ys-val">${fmtNum(yd.unique_artists)}</div>
+              </div>
+            </div>
+            ${yd.top_artist?`
+              <div class="y-artist">Top artist
+                <strong>${esc(yd.top_artist)}</strong>
+              </div>`:''}
+          </div>
         </div>`;
     }
 
