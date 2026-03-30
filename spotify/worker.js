@@ -166,6 +166,16 @@ function process(files) {
   const yAms = new Map(), yApl = new Map();
   const ySms = new Map(), ySpl = new Map(), ySal = new Map();
   const yAlms = new Map(), yAlpl = new Map();
+  const yPodMs = new Map(), yPodEp = new Map(); // year -> Map(show -> ms/episodes)
+
+  for (const p of podcasts) {
+    const y = p.ts.slice(0, 4);
+    const s = p.episode_show_name || 'Unknown';
+    if (!yPodMs.has(y)) yPodMs.set(y, new Map());
+    yPodMs.get(y).set(s, (yPodMs.get(y).get(s) || 0) + p.ms_played);
+    if (!yPodEp.has(y)) yPodEp.set(y, new Map());
+    yPodEp.get(y).set(s, (yPodEp.get(y).get(s) || 0) + 1);
+  }
 
   for (const p of music) {
     const y  = p.ts.slice(0, 4);
@@ -221,6 +231,8 @@ function process(files) {
       top_artists: topA.map(([name,ms]) => ({ name, ms, plays: apl.get(name) })),
       top_songs:   topS.map(([k,ms]) => { const [artist,name]=k.split('\x00'); return { artist, name, album: sal.get(k)||'', ms, plays: spl.get(k) }; }),
       top_albums:  topAl.map(([k,ms]) => { const [artist,name]=k.split('\x00'); return { artist, name, ms, plays: alpl.get(k) }; }),
+      top_podcasts: [...(yPodMs.get(y) || new Map()).entries()].sort((a,b)=>b[1]-a[1]).slice(0,10)
+        .map(([name,ms]) => ({ name, ms, episodes: (yPodEp.get(y)||new Map()).get(name) })),
     };
   }
 

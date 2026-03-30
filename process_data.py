@@ -149,6 +149,11 @@ def main():
     y_sal  = defaultdict(dict)
     y_alms = defaultdict(lambda: defaultdict(int))
     y_alpl = defaultdict(lambda: defaultdict(int))
+    y_pod_ms = defaultdict(lambda: defaultdict(int))
+    y_pod_ep = defaultdict(lambda: defaultdict(int))
+    for p in podcasts:
+        y = p["ts"][:4]; s = p.get("episode_show_name") or "Unknown"
+        y_pod_ms[y][s] += p["ms_played"]; y_pod_ep[y][s] += 1
     for p in music:
         y  = p["ts"][:4]
         a  = p.get("master_metadata_album_artist_name") or ""
@@ -182,6 +187,8 @@ def main():
                               "ms": y_sms[y][k], "plays": y_spl[y][k]} for k in top_s],
             "top_albums":  [{"artist": k[0], "name": k[1],
                               "ms": y_alms[y][k], "plays": y_alpl[y][k]} for k in top_al],
+            "top_podcasts": [{"name": s, "ms": y_pod_ms[y][s], "episodes": y_pod_ep[y][s]}
+                             for s in sorted(y_pod_ms[y], key=y_pod_ms[y].get, reverse=True)[:10]],
         }
 
     # ── Temporal Patterns ────────────────────────────────────────────────────

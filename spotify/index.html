@@ -679,6 +679,7 @@ main{max-width:1340px;margin:0 auto;padding:0 28px 100px}
             <button class="tab-btn on" data-ye="artists" style="padding:8px 16px">Artists</button>
             <button class="tab-btn" data-ye="songs" style="padding:8px 16px">Songs</button>
             <button class="tab-btn" data-ye="albums" style="padding:8px 16px">Albums</button>
+            <button class="tab-btn" data-ye="podcasts" style="padding:8px 16px">Podcasts</button>
           </div>
         </div>
         <div id="ye-list" class="rank-list"></div>
@@ -767,7 +768,8 @@ async function init(){
     if(id){
       if(!/^[a-f0-9]{10}$/.test(id)) throw new Error('Invalid share ID');
       $('load-msg').textContent = 'Loading shared stats…';
-      const payload = await fetch(`/api/get/${id}`).then(r=>{
+      const store = new URLSearchParams(location.search).get('s') || '';
+      const payload = await fetch(`/api/get/${id}${store ? '?s='+store : ''}`).then(r=>{
         if(!r.ok) throw new Error('Shared stats not found');
         return r.json();
       });
@@ -1053,7 +1055,7 @@ function renderYearExplorer(stats){
           <div class="rname">${esc(s.name)}<small>${esc(s.artist)}</small></div>
           <div class="rmeta">${fmtH(s.ms)}<br>${fmtNum(s.plays)} plays</div>
         </div>`).join('');
-    } else {
+    } else if(activeTab==='albums'){
       const items=yd.top_albums||[];
       const maxMs=items[0]?.ms||1;
       list.innerHTML=items.map((a,i)=>`
@@ -1061,6 +1063,16 @@ function renderYearExplorer(stats){
           <span class="rn">${i+1}</span>
           <div class="rname">${esc(a.name)}<small>${esc(a.artist)}</small></div>
           <div class="rmeta">${fmtH(a.ms)}<br>${fmtNum(a.plays)} plays</div>
+        </div>`).join('');
+    } else {
+      const items=yd.top_podcasts||[];
+      if(!items.length){list.innerHTML='<div style="padding:18px;font-family:var(--mono);font-size:11px;color:var(--faint)">No podcast data for this year</div>';return;}
+      const maxMs=items[0]?.ms||1;
+      list.innerHTML=items.map((p,i)=>`
+        <div class="rank-item" data-p="${(p.ms/maxMs).toFixed(3)}" style="--p:0">
+          <span class="rn">${i+1}</span>
+          <div class="rname">${esc(p.name)}</div>
+          <div class="rmeta">${fmtH(p.ms)}<br>${fmtNum(p.episodes)} ep</div>
         </div>`).join('');
     }
     // animate bars
@@ -1321,8 +1333,8 @@ async function uploadStats(stats) {
     body: JSON.stringify({ stats })
   });
   if (!res.ok) throw new Error('Upload failed (' + res.status + ')');
-  const { id } = await res.json();
-  return location.origin + location.pathname + '?id=' + id;
+  const { id, store } = await res.json();
+  return location.origin + location.pathname + '?id=' + id + (store ? '&s=' + store : '');
 }
 
 // ── Welcome screen ────────────────────────────────────────────────────────────
