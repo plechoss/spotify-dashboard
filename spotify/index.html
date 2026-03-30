@@ -769,7 +769,7 @@ async function init(){
       if(!/^[a-f0-9]{10}$/.test(id)) throw new Error('Invalid share ID');
       $('load-msg').textContent = 'Loading shared stats…';
       const b = new URLSearchParams(location.search).get('b') || '';
-      const payload = await fetch(`/api/get/${id}${b ? '?b='+encodeURIComponent(b) : ''}`).then(r=>{
+      const payload = await fetch(`/api/get?id=${id}${b ? '&b='+encodeURIComponent(b) : ''}`).then(r=>{
         if(!r.ok) throw new Error('Shared stats not found');
         return r.json();
       });
