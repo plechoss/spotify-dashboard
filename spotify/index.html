@@ -214,25 +214,6 @@ main{max-width:1340px;margin:0 auto;padding:0 28px 100px}
 .rname{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rname small{display:block;font-size:11px;font-weight:400;color:var(--muted)}
 .rmeta{font-family:var(--mono);font-size:11px;color:var(--muted);text-align:right;white-space:nowrap;line-height:1.4}
-#artist-list{
-  max-height:500px;
-  overflow-y:auto;
-  padding-right:4px;
-}
-#artist-list .rank-item{
-  padding:12px 12px;
-  grid-template-columns:34px minmax(0,1fr) auto;
-}
-#artist-list .rname{
-  white-space:normal;
-  overflow:visible;
-  text-overflow:unset;
-  line-height:1.35;
-}
-#artist-list .rname small{
-  margin-top:3px;
-  line-height:1.35;
-}
 
 /* ── Data table ──────────────────────────────────────────────────────── */
 .dtable{width:100%;border-collapse:collapse;font-size:13px}
@@ -249,6 +230,10 @@ main{max-width:1340px;margin:0 auto;padding:0 28px 100px}
 .dtable th.sortable{cursor:pointer;user-select:none}
 .dtable th.sortable:hover{color:var(--text)}
 .dtable th.sortable.active{color:var(--gold)}
+.top-table-wrap{max-height:500px;overflow:auto}
+.top-table-wrap .dtable thead th{
+  position:sticky;top:0;z-index:1;background:var(--bg2);
+}
 
 /* ── Tabs ────────────────────────────────────────────────────────────── */
 .tab-bar{display:flex;border-bottom:1px solid var(--border);margin-bottom:22px}
@@ -723,27 +708,48 @@ main{max-width:1340px;margin:0 auto;padding:0 28px 100px}
             <div class="chart-wrap" style="height:500px"><canvas id="cArtist"></canvas></div>
           </div>
           <div class="card">
-            <div class="card-title">Top 50 <small>full ranking</small></div>
-            <div class="rank-list" id="artist-list"></div>
+            <div class="card-title">Top 100 Artists <small>detailed view</small></div>
+            <div class="top-table-wrap">
+              <table class="dtable">
+                <thead><tr><th>#</th><th>Artist</th><th>First heard</th><th style="text-align:right">Plays</th><th style="text-align:right">Time</th></tr></thead>
+                <tbody id="artists-body"></tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>
       <div id="t-songs" class="tab-pane">
-        <div class="card">
-          <div class="card-title">Top 100 Songs <small>by total listening time</small></div>
-          <table class="dtable">
-            <thead><tr><th>#</th><th>Song</th><th>Artist</th><th>Album</th><th style="text-align:right">Plays</th><th style="text-align:right">Time</th></tr></thead>
-            <tbody id="songs-body"></tbody>
-          </table>
+        <div class="two-col">
+          <div class="card">
+            <div class="card-title">Top 20 <small>songs by hours</small></div>
+            <div class="chart-wrap" style="height:500px"><canvas id="cSong"></canvas></div>
+          </div>
+          <div class="card">
+            <div class="card-title">Top 100 Songs <small>detailed view</small></div>
+            <div class="top-table-wrap">
+              <table class="dtable">
+                <thead><tr><th>#</th><th>Song</th><th>Artist</th><th>Album</th><th style="text-align:right">Plays</th><th style="text-align:right">Time</th></tr></thead>
+                <tbody id="songs-body"></tbody>
+              </table>
+            </div>
+          </div>
         </div>
       </div>
       <div id="t-albums" class="tab-pane">
-        <div class="card">
-          <div class="card-title">Top 100 Albums <small>by total listening time</small></div>
-          <table class="dtable">
-            <thead><tr><th>#</th><th>Album</th><th>Artist</th><th style="text-align:right">Plays</th><th style="text-align:right">Time</th></tr></thead>
-            <tbody id="albums-body"></tbody>
-          </table>
+        <div class="two-col">
+          <div class="card">
+            <div class="card-title">Top 20 <small>albums by hours</small></div>
+            <div class="chart-wrap" style="height:500px"><canvas id="cAlbum"></canvas></div>
+          </div>
+          <div class="card">
+            <div class="card-title">Top 100 Albums <small>detailed view</small></div>
+            <div class="top-table-wrap">
+              <table class="dtable">
+                <thead><tr><th>#</th><th>Album</th><th>Artist</th><th style="text-align:right">Plays</th><th style="text-align:right">Time</th></tr></thead>
+                <tbody id="albums-body"></tbody>
+              </table>
+            </div>
+          </div>
         </div>
       </div>
     </section>
@@ -1035,58 +1041,63 @@ function renderHabits(stats){
 
 // ── Top lists ──────────────────────────────────────────────────────────────────
 function renderTopLists(stats){
-  // Artist bar chart (top 20)
-  const t20=stats.top_artists.slice(0,20);
-  new Chart($('cArtist'),{
-    type:'bar',
-    data:{
-      labels:t20.map(a=>a.name.length>22?a.name.slice(0,20)+'…':a.name),
-      datasets:[{
-        data:t20.map(a=>+(a.ms/3.6e6).toFixed(1)),
-        backgroundColor:t20.map((_,i)=>`rgba(245,200,66,${.92-i*.03})`),
-        borderRadius:4,borderSkipped:false
-      }]
-    },
-    options:{
-      indexAxis:'y',responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.parsed.x.toFixed(1)}h`}}},
-      scales:{
-        x:{grid:{color:'rgba(44,39,32,.5)'},ticks:{callback:v=>`${v}h`}},
-        y:{grid:{display:false},ticks:{font:{size:10}}}
+  function renderTop20Chart(canvasId, rows, labelFn){
+    new Chart($(canvasId),{
+      type:'bar',
+      data:{
+        labels:rows.map(r=>{
+          const label = labelFn(r) || '';
+          return label.length > 24 ? label.slice(0,22)+'…' : label;
+        }),
+        datasets:[{
+          data:rows.map(r=>+(r.ms/3.6e6).toFixed(1)),
+          backgroundColor:rows.map((_,i)=>`rgba(245,200,66,${.92-i*.03})`),
+          borderRadius:4,borderSkipped:false
+        }]
+      },
+      options:{
+        indexAxis:'y',responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.parsed.x.toFixed(1)}h`}}},
+        scales:{
+          x:{grid:{color:'rgba(44,39,32,.5)'},ticks:{callback:v=>`${v}h`}},
+          y:{grid:{display:false},ticks:{font:{size:10}}}
+        }
       }
-    }
-  });
+    });
+  }
 
-  // Artist rank list (top 50)
-  const maxMs=stats.top_artists[0]?.ms||1;
-  $('artist-list').innerHTML=stats.top_artists.slice(0,50).map((a,i)=>`
-    <div class="rank-item" data-p="${(a.ms/maxMs).toFixed(3)}" style="--p:0">
-      <span class="rn">${i+1}</span>
-      <div class="rname">${esc(a.name)}<small>First heard ${a.first_heard}</small></div>
-      <div class="rmeta">${fmtH(a.ms)}<br>${fmtNum(a.plays)} plays</div>
-    </div>`).join('');
+  renderTop20Chart('cArtist', stats.top_artists.slice(0,20), a => a.name);
+  renderTop20Chart('cSong', stats.top_songs.slice(0,20), s => s.name);
+  renderTop20Chart('cAlbum', stats.top_albums.slice(0,20), a => a.name);
 
-  // Animate bars when visible
-  animateRankBars('artist-list');
+  // Artists table
+  $('artists-body').innerHTML=stats.top_artists.slice(0,100).map((a,i)=>`
+    <tr>
+      <td class="n">${i+1}</td>
+      <td>${esc(a.name)}</td>
+      <td class="ar">${a.first_heard || ''}</td>
+      <td class="r">${fmtNum(a.plays)}</td>
+      <td class="r">${fmtH(a.ms)}</td>
+    </tr>`).join('');
 
   // Songs table
-  $('songs-body').innerHTML=stats.top_songs.map((s,i)=>`
+  $('songs-body').innerHTML=stats.top_songs.slice(0,100).map((s,i)=>`
     <tr>
       <td class="n">${i+1}</td>
       <td>${esc(s.name)}</td>
       <td class="ar">${esc(s.artist)}</td>
       <td class="ar">${esc(s.album)}</td>
-      <td class="r">${s.plays}</td>
+      <td class="r">${fmtNum(s.plays)}</td>
       <td class="r">${fmtH(s.ms)}</td>
     </tr>`).join('');
 
   // Albums table
-  $('albums-body').innerHTML=stats.top_albums.map((a,i)=>`
+  $('albums-body').innerHTML=stats.top_albums.slice(0,100).map((a,i)=>`
     <tr>
       <td class="n">${i+1}</td>
       <td>${esc(a.name)}</td>
       <td class="ar">${esc(a.artist)}</td>
-      <td class="r">${a.plays}</td>
+      <td class="r">${fmtNum(a.plays)}</td>
       <td class="r">${fmtH(a.ms)}</td>
     </tr>`).join('');
 }
@@ -1205,22 +1216,6 @@ function renderSkipped(stats){
   SKIPPED_ROWS = rows;
   bindSkippedSort();
   renderSkippedTable();
-}
-
-function animateRankBars(listId){
-  const el=$(listId);
-  if(!el) return;
-  const obs=new IntersectionObserver(([e])=>{
-    if(e.isIntersecting){
-      obs.disconnect();
-      el.querySelectorAll('.rank-item[data-p]').forEach(it=>{
-        requestAnimationFrame(()=>requestAnimationFrame(()=>{
-          it.style.setProperty('--p', it.dataset.p);
-        }));
-      });
-    }
-  },{threshold:.08});
-  obs.observe(el);
 }
 
 // ── Years ──────────────────────────────────────────────────────────────────────
