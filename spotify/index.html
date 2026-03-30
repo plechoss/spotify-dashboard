@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Mono:ital,wght@0,400;0,500;1,400&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js"></script>
 <style>
 :root {
   --bg:       #0b0a09;
@@ -497,9 +498,9 @@ main{max-width:1340px;margin:0 auto;padding:0 28px 100px}
     <p class="wl-sub">Drop your Spotify extended streaming history files and explore your listening — top artists, songs, albums, habits, and more. Processed entirely in your browser. Share a link with anyone.</p>
 
     <div class="drop-zone" id="wl-dz" style="margin-bottom:12px">
-      <input type="file" accept=".json" id="wl-fi" multiple>
-      <div class="dz-ico">&#128194;</div>
-      <div class="dz-lbl"><strong>Streaming_History_Audio_*.json</strong><br>select all files from your Spotify data export</div>
+      <input type="file" accept=".zip" id="wl-fi">
+      <div class="dz-ico">&#128230;</div>
+      <div class="dz-lbl"><strong>Spotify Account Data.zip</strong><br>drop or click to select your Spotify data export</div>
     </div>
 
     <div class="wl-file-list" id="wl-file-list"></div>
@@ -524,7 +525,7 @@ main{max-width:1340px;margin:0 auto;padding:0 28px 100px}
       </div>
     </div>
 
-    <p class="wl-note">Request your data at <strong>Spotify → Account → Privacy → Download your data</strong>, select "Extended streaming history". You'll receive an email with a ZIP — open it and select the <code style="font-family:var(--mono);font-size:10px;color:var(--muted)">Streaming_History_Audio_*.json</code> files.</p>
+    <p class="wl-note">Request your data at <strong>Spotify → Account → Privacy → Download your data</strong>, select "Extended streaming history". You'll receive an email with a ZIP file — just upload that ZIP directly here.</p>
   </div>
 </div>
 
@@ -554,9 +555,9 @@ main{max-width:1340px;margin:0 auto;padding:0 28px 100px}
       <div class="up-sub">Drop your Spotify history files to process and get a shareable link.</div>
 
       <div class="drop-zone" id="dz-raw">
-        <input type="file" accept=".json" id="fi-raw" multiple>
-        <div class="dz-ico">&#128194;</div>
-        <div class="dz-lbl"><strong>Streaming_History_Audio_*.json</strong><br>select all files from your export</div>
+        <input type="file" accept=".zip" id="fi-raw">
+        <div class="dz-ico">&#128230;</div>
+        <div class="dz-lbl"><strong>Spotify Account Data.zip</strong><br>drop or click to select your Spotify data export</div>
       </div>
 
       <div class="wl-file-list" id="up-file-list" style="margin-top:10px"></div>
@@ -1291,8 +1292,24 @@ function setupFadeIns(){
   document.querySelectorAll('.fi').forEach(el=>obs.observe(el));
 }
 
-// ── Shared: run Worker on files, call back with { stats, history } ────────────
-function runWorker(files, onProgress, onDone, onError) {
+// ── Extract Streaming_History_Audio_*.json files from a Spotify ZIP ──────────
+function extractZip(file) {
+  return file.arrayBuffer().then(buf => new Promise((resolve, reject) => {
+    fflate.unzip(new Uint8Array(buf), (err, entries) => {
+      if (err) return reject(new Error('Could not read ZIP: ' + err.message));
+      const fileData = Object.entries(entries)
+        .filter(([name]) => /Streaming_History_Audio_[^/]+\.json$/.test(name))
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([name, data]) => ({ name: name.split('/').pop(), buffer: data.buffer }));
+      if (fileData.length === 0)
+        return reject(new Error('No Streaming_History_Audio_*.json files found in ZIP. Make sure you selected the correct Spotify export.'));
+      resolve(fileData);
+    });
+  }));
+}
+
+// ── Shared: run Worker on pre-extracted file data ─────────────────────────────
+function runWorker(fileData, onProgress, onDone, onError) {
   const worker = new Worker('worker.js');
   worker.onmessage = e => {
     const d = e.data;
@@ -1301,28 +1318,25 @@ function runWorker(files, onProgress, onDone, onError) {
     else if (d.type === 'error') { worker.terminate(); onError(new Error(d.message)); }
   };
   worker.onerror = err => { worker.terminate(); onError(err); };
-
-  // Read files as ArrayBuffers then transfer to worker (zero-copy)
-  Promise.all(Array.from(files).map(f =>
-    f.arrayBuffer().then(buf => ({ name: f.name, buffer: buf }))
-  )).then(fileData => {
-    const buffers = fileData.map(f => f.buffer);
-    worker.postMessage({ files: fileData }, buffers);
-  }).catch(onError);
+  const buffers = fileData.map(f => f.buffer);
+  worker.postMessage({ files: fileData }, buffers);
 }
 
-function wireDropZoneMulti(dzId, inputId, onFiles) {
+function wireDropZone(dzId, inputId, onFileData) {
   const dz=$(dzId), inp=$(inputId);
-  function handleFiles(fileList) {
-    const files = [...fileList].filter(f => f.name.endsWith('.json'));
-    if (files.length) onFiles(files);
+  function handleFile(file) {
+    if (!file || !file.name.endsWith('.zip')) return;
+    extractZip(file).then(onFileData).catch(err => {
+      console.error('ZIP extraction failed:', err);
+      alert(err.message);
+    });
   }
-  inp.addEventListener('change', () => handleFiles(inp.files));
+  inp.addEventListener('change', () => handleFile(inp.files[0]));
   dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('over'); });
   dz.addEventListener('dragleave', () => dz.classList.remove('over'));
   dz.addEventListener('drop', e => {
     e.preventDefault(); dz.classList.remove('over');
-    handleFiles(e.dataTransfer.files);
+    handleFile(e.dataTransfer.files[0]);
   });
 }
 
@@ -1355,22 +1369,21 @@ async function uploadStats(stats) {
   const bar    = $('wl-prog-bar');
   const step   = $('wl-prog-step');
 
-  function showFiles(files) {
-    pendingFiles = files;
+  function showFiles(fileData) {
+    pendingFiles = fileData;
     processedStats = null;
-    const audioFiles = files.filter(f => f.name.includes('Streaming_History_Audio_'));
     const list = $('wl-file-list');
-    list.innerHTML = audioFiles.map(f =>
+    list.innerHTML = fileData.map(f =>
       `<div class="wl-file-item"><span class="wl-file-dot"></span>${esc(f.name)}</div>`
     ).join('');
     list.classList.add('show');
     $('wl-preview').classList.remove('show');
     errEl.classList.remove('show');
-    btn.disabled = audioFiles.length === 0;
+    btn.disabled = false;
     btn.textContent = 'Process My History';
   }
 
-  wireDropZoneMulti('wl-dz', 'wl-fi', showFiles);
+  wireDropZone('wl-dz', 'wl-fi', showFiles);
 
   btn.addEventListener('click', () => {
     if (processedStats) {
@@ -1389,10 +1402,9 @@ async function uploadStats(stats) {
     progEl.classList.add('show');
     bar.style.width = '0%';
 
-    const audioFiles = pendingFiles.filter(f => f.name.includes('Streaming_History_Audio_'));
-    const total = audioFiles.length;
+    const total = pendingFiles.length;
 
-    runWorker(audioFiles,
+    runWorker(pendingFiles,
       // progress
       d => {
         const pct = total ? Math.round((d.done / total) * 90) : 0;
@@ -1479,8 +1491,8 @@ async function uploadStats(stats) {
   $('close-panel-btn').addEventListener('click', ()=>panel.classList.remove('open'));
   panel.addEventListener('click', e=>{ if(e.target===panel) panel.classList.remove('open'); });
 
-  wireDropZoneMulti('dz-raw', 'fi-raw', files => {
-    pendingFiles = files.filter(f => f.name.includes('Streaming_History_Audio_'));
+  wireDropZone('dz-raw', 'fi-raw', fileData => {
+    pendingFiles = fileData;
     processedStats = null;
     const list = $('up-file-list');
     list.innerHTML = pendingFiles.map(f =>
@@ -1490,7 +1502,7 @@ async function uploadStats(stats) {
     $('up-progress').classList.remove('show');
     shareWrap.classList.remove('show');
     errEl.classList.remove('show');
-    submitBtn.disabled = pendingFiles.length === 0;
+    submitBtn.disabled = false;
     submitBtn.textContent = 'Process & Get Link';
   });
 
