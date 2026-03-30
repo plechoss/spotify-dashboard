@@ -472,6 +472,7 @@ main{max-width:1340px;margin:0 auto;padding:0 28px 100px}
   transition:border-color .2s,color .2s;white-space:nowrap;
 }
 .nav-share-btn:hover{border-color:var(--gold);color:var(--gold)}
+.nav-share-btn.copied{border-color:var(--green);color:var(--green)}
 .nav-upgrade-tip{
   width:24px;height:24px;border-radius:50%;
   border:1px solid var(--border);
@@ -639,7 +640,8 @@ main{max-width:1340px;margin:0 auto;padding:0 28px 100px}
       <a class="nav-link" href="#podcasts">Podcasts</a>
       <a class="nav-link" href="#history">History</a>
       <div class="nav-actions">
-        <button class="nav-share-btn" id="open-panel-btn">&#8593; Load · Share</button>
+        <button class="nav-share-btn" id="open-panel-btn">&#8593; Load</button>
+        <button class="nav-share-btn" id="share-link-btn">&#128279; Share</button>
         <span class="nav-upgrade-tip" id="reload-tip" tabindex="0" aria-label="Reload data hint">
           i
           <span class="tip">Reload your Spotify export on this same link to unlock newer stats. For safety, updates are accepted only from the same Spotify account.</span>
@@ -1841,6 +1843,19 @@ async function uploadStats(stats) {
     if(id){ slUrl.value=location.href; shareWrap.classList.add('show'); }
   }
   $('open-panel-btn').addEventListener('click', openPanel);
+  $('share-link-btn').addEventListener('click', ()=>{
+    const id = new URLSearchParams(location.search).get('id');
+    if(!id){ openPanel(); return; }
+    navigator.clipboard.writeText(location.href).then(()=>{
+      const btn = $('share-link-btn');
+      btn.textContent = 'Copied!';
+      btn.classList.add('copied');
+      setTimeout(()=>{
+        btn.innerHTML = '&#128279; Share';
+        btn.classList.remove('copied');
+      }, 1800);
+    }).catch(()=>openPanel());
+  });
   $('close-panel-btn').addEventListener('click', ()=>panel.classList.remove('open'));
   panel.addEventListener('click', e=>{ if(e.target===panel) panel.classList.remove('open'); });
 
