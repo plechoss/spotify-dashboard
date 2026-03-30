@@ -167,7 +167,7 @@ function process(files) {
       (sPl.get(b[0]) || 0) - (sPl.get(a[0]) || 0) ||
       (sMs.get(b[0]) || 0) - (sMs.get(a[0]) || 0)
     )
-    .slice(0, 100)
+    .slice(0, 50)
     .map(([k, skipCount]) => {
       const [artist, name] = k.split('\x00');
       const plays = sPl.get(k) || 0;

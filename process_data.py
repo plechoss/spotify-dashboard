@@ -125,7 +125,7 @@ def main():
         {"artist": k[0], "name": k[1], "album": s_al.get(k, ""),
          "skip_count": s_sk[k], "plays": s_pl[k],
          "skip_rate": round(s_sk[k] / s_pl[k], 4) if s_pl[k] else 0}
-        for k in sorted(s_sk, key=lambda kk: (s_sk[kk], s_pl[kk], s_ms[kk]), reverse=True)[:100]
+        for k in sorted(s_sk, key=lambda kk: (s_sk[kk], s_pl[kk], s_ms[kk]), reverse=True)[:50]
     ]
 
     # ── Top Albums ───────────────────────────────────────────────────────────

@@ -219,6 +219,20 @@ main{max-width:1340px;margin:0 auto;padding:0 28px 100px}
   overflow-y:auto;
   padding-right:4px;
 }
+#artist-list .rank-item{
+  padding:12px 12px;
+  grid-template-columns:34px minmax(0,1fr) auto;
+}
+#artist-list .rname{
+  white-space:normal;
+  overflow:visible;
+  text-overflow:unset;
+  line-height:1.35;
+}
+#artist-list .rname small{
+  margin-top:3px;
+  line-height:1.35;
+}
 
 /* ── Data table ──────────────────────────────────────────────────────── */
 .dtable{width:100%;border-collapse:collapse;font-size:13px}
@@ -817,7 +831,7 @@ main{max-width:1340px;margin:0 auto;padding:0 28px 100px}
       <div class="section-eyebrow">Skip Patterns</div>
       <h2 class="section-title">Most Skipped<br>Songs</h2>
       <div class="card">
-        <div class="card-title">Top 100 by skip count <small>from your full listening history</small></div>
+        <div class="card-title">Top 50 by skip count <small>from your full listening history</small></div>
         <table class="dtable">
           <thead><tr><th>#</th><th>Song</th><th>Artist</th><th>Album</th><th id="sk-sort-skips" class="sortable" data-sort-key="skip_count" style="text-align:right">Skips ↓</th><th id="sk-sort-plays" class="sortable" data-sort-key="plays" style="text-align:right">Plays</th><th id="sk-sort-rate" class="sortable" data-sort-key="skip_rate" style="text-align:right">Skip rate</th></tr></thead>
           <tbody id="skipped-body"></tbody>
@@ -1180,7 +1194,8 @@ function renderSkipped(stats){
         skip_rate: rate,
       };
     })
-    .filter(s => s.skip_count > 0);
+    .filter(s => s.skip_count > 0)
+    .slice(0, 50);
 
   if(!rows.length){
     hideSkippedSection();
