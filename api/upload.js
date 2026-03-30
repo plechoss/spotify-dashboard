@@ -10,10 +10,7 @@ module.exports = async (req, res) => {
       contentType: 'application/json',
       addRandomSuffix: false,
     });
-    // Extract store subdomain from the returned URL so the client can pass it to /api/get
-    const storeMatch = blob.url.match(/https:\/\/([^.]+)\.public\.blob/);
-    const store = storeMatch ? storeMatch[1] : '';
-    res.status(200).json({ id, store });
+    res.status(200).json({ id, blobUrl: blob.url });
   } catch (err) {
     console.error('Upload error:', err);
     res.status(500).json({ error: 'Upload failed' });

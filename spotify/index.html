@@ -768,8 +768,8 @@ async function init(){
     if(id){
       if(!/^[a-f0-9]{10}$/.test(id)) throw new Error('Invalid share ID');
       $('load-msg').textContent = 'Loading shared stats…';
-      const store = new URLSearchParams(location.search).get('s') || '';
-      const payload = await fetch(`/api/get/${id}${store ? '?s='+store : ''}`).then(r=>{
+      const b = new URLSearchParams(location.search).get('b') || '';
+      const payload = await fetch(`/api/get/${id}${b ? '?b='+encodeURIComponent(b) : ''}`).then(r=>{
         if(!r.ok) throw new Error('Shared stats not found');
         return r.json();
       });
@@ -1333,8 +1333,9 @@ async function uploadStats(stats) {
     body: JSON.stringify({ stats })
   });
   if (!res.ok) throw new Error('Upload failed (' + res.status + ')');
-  const { id, store } = await res.json();
-  return location.origin + location.pathname + '?id=' + id + (store ? '&s=' + store : '');
+  const { id, blobUrl } = await res.json();
+  const b = btoa(blobUrl);
+  return location.origin + location.pathname + '?id=' + id + '&b=' + encodeURIComponent(b);
 }
 
 // ── Welcome screen ────────────────────────────────────────────────────────────
@@ -1429,7 +1430,7 @@ async function uploadStats(stats) {
       const url = await uploadStats(processedStats);
       const id = new URL(url).searchParams.get('id');
       // Update URL without reload so the share link is bookmarkable
-      history.pushState({}, '', '?id=' + id);
+      history.pushState({}, '', url.replace(location.origin, ''));
       $('wl-sl-url').value = url;
       $('wl-share-wrap').classList.add('show');
       btn.textContent = 'Done!';
@@ -1526,7 +1527,7 @@ async function uploadStats(stats) {
     try {
       const url = await uploadStats(processedStats);
       const id = new URL(url).searchParams.get('id');
-      history.pushState({}, '', '?id=' + id);
+      history.pushState({}, '', url.replace(location.origin, ''));
       slUrl.value = url; shareWrap.classList.add('show');
       submitBtn.textContent = 'Done!';
       setTimeout(() => { panel.classList.remove('open'); renderAll(processedStats); }, 300);
