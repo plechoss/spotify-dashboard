@@ -120,7 +120,7 @@ function process(files) {
     .map(([name, ms]) => ({ name, ms, plays: aPl.get(name), first_heard: aFirst.get(name) }));
 
   // ── Top Songs ────────────────────────────────────────────────────────────────
-  const sMs = new Map(), sPl = new Map(), sAl = new Map();
+  const sMs = new Map(), sPl = new Map(), sAl = new Map(), sSk = new Map();
   for (const p of music) {
     const a = p.master_metadata_album_artist_name || '';
     const t = p.master_metadata_track_name        || '';
@@ -128,12 +128,32 @@ function process(files) {
     const k = a + '\x00' + t;
     sMs.set(k, (sMs.get(k) || 0) + p.ms_played);
     sPl.set(k, (sPl.get(k) || 0) + 1);
+    if (p.skipped || p.ms_played < 30000) sSk.set(k, (sSk.get(k) || 0) + 1);
     if (!sAl.has(k)) sAl.set(k, p.master_metadata_album_album_name || '');
   }
   const topSongs = [...sMs.entries()].sort((a,b) => b[1]-a[1]).slice(0, 200)
     .map(([k, ms]) => {
       const [artist, name] = k.split('\x00');
       return { artist, name, album: sAl.get(k) || '', ms, plays: sPl.get(k) };
+    });
+  const topSkippedSongs = [...sSk.entries()]
+    .sort((a,b) =>
+      b[1] - a[1] ||
+      (sPl.get(b[0]) || 0) - (sPl.get(a[0]) || 0) ||
+      (sMs.get(b[0]) || 0) - (sMs.get(a[0]) || 0)
+    )
+    .slice(0, 100)
+    .map(([k, skipCount]) => {
+      const [artist, name] = k.split('\x00');
+      const plays = sPl.get(k) || 0;
+      return {
+        artist,
+        name,
+        album: sAl.get(k) || '',
+        skip_count: skipCount,
+        plays,
+        skip_rate: plays ? Math.round(skipCount / plays * 1e4) / 1e4 : 0,
+      };
     });
 
   // ── Top Albums ───────────────────────────────────────────────────────────────
@@ -288,6 +308,7 @@ function process(files) {
 
   const stats = {
     overview, top_artists: topArtists, top_songs: topSongs, top_albums: topAlbums,
+    top_skipped_songs: topSkippedSongs,
     by_month: byMonth, by_year: byYear,
     by_hour: { plays: hPl, ms: hMs }, by_weekday: { plays: wPl, ms: wMs },
     platforms, countries, top_podcasts: topPodcasts,

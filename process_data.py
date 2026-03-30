@@ -107,18 +107,25 @@ def main():
     ]
 
     # ── Top Songs ────────────────────────────────────────────────────────────
-    s_ms = defaultdict(int); s_pl = defaultdict(int); s_al = {}
+    s_ms = defaultdict(int); s_pl = defaultdict(int); s_al = {}; s_sk = defaultdict(int)
     for p in music:
         a = p.get("master_metadata_album_artist_name") or ""
         t = p.get("master_metadata_track_name")        or ""
         if not (a and t): continue
         k = (a, t); s_ms[k] += p["ms_played"]; s_pl[k] += 1
+        if p.get("skipped") or p["ms_played"] < 30_000: s_sk[k] += 1
         if k not in s_al: s_al[k] = p.get("master_metadata_album_album_name") or ""
 
     top_songs = [
         {"artist": k[0], "name": k[1], "album": s_al.get(k, ""),
          "ms": s_ms[k], "plays": s_pl[k]}
         for k in sorted(s_ms, key=s_ms.get, reverse=True)[:200]
+    ]
+    top_skipped_songs = [
+        {"artist": k[0], "name": k[1], "album": s_al.get(k, ""),
+         "skip_count": s_sk[k], "plays": s_pl[k],
+         "skip_rate": round(s_sk[k] / s_pl[k], 4) if s_pl[k] else 0}
+        for k in sorted(s_sk, key=lambda kk: (s_sk[kk], s_pl[kk], s_ms[kk]), reverse=True)[:100]
     ]
 
     # ── Top Albums ───────────────────────────────────────────────────────────
@@ -231,6 +238,7 @@ def main():
     stats = dict(
         overview=overview, top_artists=top_artists,
         top_songs=top_songs, top_albums=top_albums,
+        top_skipped_songs=top_skipped_songs,
         by_month=by_month, by_year=by_year,
         by_hour={"plays": h_pl, "ms": h_ms},
         by_weekday={"plays": w_pl, "ms": w_ms},

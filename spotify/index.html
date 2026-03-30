@@ -538,6 +538,7 @@ main{max-width:1340px;margin:0 auto;padding:0 28px 100px}
       <a class="nav-link" href="#timeline">Timeline</a>
       <a class="nav-link" href="#habits">Habits</a>
       <a class="nav-link" href="#top">Top Lists</a>
+      <a class="nav-link" href="#skipped">Skipped</a>
       <a class="nav-link" href="#years">Years</a>
       <a class="nav-link" href="#year-explorer">Explorer</a>
       <a class="nav-link" href="#devices">Devices</a>
@@ -655,6 +656,19 @@ main{max-width:1340px;margin:0 auto;padding:0 28px 100px}
             <tbody id="albums-body"></tbody>
           </table>
         </div>
+      </div>
+    </section>
+
+    <!-- MOST SKIPPED -->
+    <section id="skipped" class="section fi">
+      <div class="section-eyebrow">Skip Patterns</div>
+      <h2 class="section-title">Most Skipped<br>Songs</h2>
+      <div class="card">
+        <div class="card-title">Top 100 by skip count <small>from your full listening history</small></div>
+        <table class="dtable">
+          <thead><tr><th>#</th><th>Song</th><th>Artist</th><th>Album</th><th style="text-align:right">Skips</th><th style="text-align:right">Plays</th><th style="text-align:right">Skip rate</th></tr></thead>
+          <tbody id="skipped-body"></tbody>
+        </table>
       </div>
     </section>
 
@@ -806,6 +820,7 @@ function renderAll(stats){
   renderTimeline(stats);
   renderHabits(stats);
   renderTopLists(stats);
+  renderSkipped(stats);
   renderYears(stats);
   renderYearExplorer(stats);
   renderDevices(stats);
@@ -975,6 +990,45 @@ function renderTopLists(stats){
       <td class="r">${a.plays}</td>
       <td class="r">${fmtH(a.ms)}</td>
     </tr>`).join('');
+}
+
+function hideSkippedSection(){
+  const sec = $('skipped');
+  if(sec) sec.style.display = 'none';
+  const link = document.querySelector('.nav-link[href="#skipped"]');
+  if(link) link.style.display = 'none';
+}
+
+function showSkippedSection(){
+  const sec = $('skipped');
+  if(sec) sec.style.display = '';
+  const link = document.querySelector('.nav-link[href="#skipped"]');
+  if(link) link.style.display = '';
+}
+
+function renderSkipped(stats){
+  const rows = (stats.top_skipped_songs || []).filter(s => (s.skip_count || 0) > 0);
+  if(!rows.length){
+    hideSkippedSection();
+    return;
+  }
+  showSkippedSection();
+
+  $('skipped-body').innerHTML = rows.map((s,i)=>{
+    const plays = Number(s.plays || 0);
+    const skips = Number(s.skip_count || 0);
+    const rate = typeof s.skip_rate === 'number' ? s.skip_rate : (plays ? skips / plays : 0);
+    return `
+      <tr>
+        <td class="n">${i+1}</td>
+        <td>${esc(s.name || '')}</td>
+        <td class="ar">${esc(s.artist || '')}</td>
+        <td class="ar">${esc(s.album || '')}</td>
+        <td class="r">${fmtNum(skips)}</td>
+        <td class="r">${fmtNum(plays)}</td>
+        <td class="r">${(rate * 100).toFixed(1)}%</td>
+      </tr>`;
+  }).join('');
 }
 
 function animateRankBars(listId){
