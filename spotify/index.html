@@ -670,12 +670,12 @@ main{max-width:1340px;margin:0 auto;padding:0 28px 100px}
     </div>
   </nav>
 
-  <!-- Upload / Share panel -->
+  <!-- Load panel -->
   <div id="upload-panel">
     <div class="up-box">
       <button class="up-close" id="close-panel-btn">&#215;</button>
-      <div class="up-title">Load &amp; Share</div>
-      <div class="up-sub">Drop your Spotify history files to process and get a shareable link.</div>
+      <div class="up-title">Load</div>
+      <div class="up-sub">Drop your Spotify history files to process and load them on this page.</div>
 
       <div class="drop-zone" id="dz-raw">
         <input type="file" accept=".zip" id="fi-raw">
@@ -701,16 +701,8 @@ main{max-width:1340px;margin:0 auto;padding:0 28px 100px}
         </ol>
       </div>
 
-      <button class="up-btn" id="up-submit-btn" disabled>Process &amp; Get Link</button>
+      <button class="up-btn" id="up-submit-btn" disabled>Process &amp; Load</button>
       <div class="up-err" id="up-err"></div>
-
-      <div class="share-link-wrap" id="share-link-wrap">
-        <div class="sl-lbl">Shareable link</div>
-        <div class="sl-row">
-          <input class="sl-url" id="sl-url" readonly>
-          <button class="sl-copy" id="sl-copy-btn">Copy</button>
-        </div>
-      </div>
     </div>
   </div>
 
@@ -1847,20 +1839,15 @@ async function uploadStats(stats) {
   });
 })();
 
-// ── Upload / Share panel ───────────────────────────────────────────────────────
+// ── Load panel ─────────────────────────────────────────────────────────────────
 (function(){
   let pendingFiles = null, processedStats = null;
   const panel    = $('upload-panel');
   const submitBtn= $('up-submit-btn');
   const errEl    = $('up-err');
-  const shareWrap= $('share-link-wrap');
-  const slUrl    = $('sl-url');
-  const copyBtn  = $('sl-copy-btn');
 
   function openPanel(){
     panel.classList.add('open');
-    const id = new URLSearchParams(location.search).get('id');
-    if(id){ slUrl.value=location.href; shareWrap.classList.add('show'); }
   }
   $('open-panel-btn').addEventListener('click', openPanel);
   $('share-link-btn').addEventListener('click', ()=>{
@@ -1888,10 +1875,9 @@ async function uploadStats(stats) {
     ).join('');
     list.classList.add('show');
     $('up-progress').classList.remove('show');
-    shareWrap.classList.remove('show');
     errEl.classList.remove('show');
     submitBtn.disabled = false;
-    submitBtn.textContent = 'Process & Get Link';
+    submitBtn.textContent = 'Process & Load';
   });
 
   submitBtn.addEventListener('click', () => {
@@ -1919,12 +1905,12 @@ async function uploadStats(stats) {
         processedStats = d.stats;
         PRELOADED_HISTORY = d.history;
         submitBtn.disabled = false;
-        submitBtn.textContent = 'Upload & Get Link';
+        submitBtn.textContent = 'Upload & Load';
       },
       err => {
         $('up-progress').classList.remove('show');
         errEl.textContent = err.message; errEl.classList.add('show');
-        submitBtn.disabled = false; submitBtn.textContent = 'Process & Get Link';
+        submitBtn.disabled = false; submitBtn.textContent = 'Process & Load';
       }
     );
   }
@@ -1936,21 +1922,13 @@ async function uploadStats(stats) {
       const url = await uploadStats(processedStats);
       history.pushState({}, '', url.replace(location.origin, ''));
       setupReloadHint();
-      slUrl.value = url; shareWrap.classList.add('show');
       submitBtn.textContent = 'Done!';
       setTimeout(() => { panel.classList.remove('open'); renderAll(processedStats); }, 300);
     } catch(err) {
       errEl.textContent = err.message; errEl.classList.add('show');
-      submitBtn.disabled = false; submitBtn.textContent = 'Upload & Get Link';
+      submitBtn.disabled = false; submitBtn.textContent = 'Upload & Load';
     }
   }
-
-  copyBtn.addEventListener('click', ()=>{
-    navigator.clipboard.writeText(slUrl.value).then(()=>{
-      copyBtn.textContent='Copied!'; copyBtn.classList.add('copied');
-      setTimeout(()=>{ copyBtn.textContent='Copy'; copyBtn.classList.remove('copied'); },2000);
-    });
-  });
 })();
 
 // ── Go ─────────────────────────────────────────────────────────────────────────
