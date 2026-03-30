@@ -10,7 +10,11 @@ module.exports = async (req, res) => {
       contentType: 'application/json',
       addRandomSuffix: false,
     });
-    res.status(200).json({ id, blobUrl: blob.url, storeBaseUrl: blob.url.replace(`/spotify-stats/${id}.json`, '') });
+    res.status(200).json({
+      id,
+      blobUrl: blob.url,
+      canResolveById: !!process.env.BLOB_STORE_BASE_URL,
+    });
   } catch (err) {
     console.error('Upload error:', err);
     res.status(500).json({ error: 'Upload failed' });
