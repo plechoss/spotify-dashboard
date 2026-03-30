@@ -6,7 +6,7 @@ module.exports = async (req, res) => {
   try {
     const id = crypto.randomBytes(5).toString('hex'); // 10-char hex
     await put(`spotify-stats/${id}.json`, JSON.stringify(req.body), {
-      access: 'public',
+      access: 'private',
       contentType: 'application/json',
       addRandomSuffix: false,
     });

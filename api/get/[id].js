@@ -1,4 +1,4 @@
-const { list } = require('@vercel/blob');
+const { list, download } = require('@vercel/blob');
 
 module.exports = async (req, res) => {
   const { id } = req.query;
@@ -6,9 +6,8 @@ module.exports = async (req, res) => {
   try {
     const { blobs } = await list({ prefix: `spotify-stats/${id}.json`, limit: 1 });
     if (!blobs.length) return res.status(404).json({ error: 'Not found' });
-    const r = await fetch(blobs[0].url);
-    if (!r.ok) throw new Error('Blob fetch failed');
-    const data = await r.json();
+    const blob = await download(blobs[0].url);
+    const data = await blob.json();
     res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400');
     res.json(data);
   } catch (err) {
