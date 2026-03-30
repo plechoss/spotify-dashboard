@@ -1333,9 +1333,17 @@ async function uploadStats(stats) {
     body: JSON.stringify({ stats })
   });
   if (!res.ok) throw new Error('Upload failed (' + res.status + ')');
-  const { id, blobUrl } = await res.json();
+  const { id, blobUrl, storeBaseUrl } = await res.json();
+  // If BLOB_STORE_BASE_URL env var is set server-side, just ?id= is enough.
+  // Otherwise fall back to embedding the blob URL as ?b= so links still work.
+  const hasEnvVar = !!(storeBaseUrl); // server always returns this; used for console hint
+  console.info('Blob store base URL (set as BLOB_STORE_BASE_URL in Vercel env to shorten links):', storeBaseUrl);
   const b = btoa(blobUrl);
-  return location.origin + location.pathname + '?id=' + id + '&b=' + encodeURIComponent(b);
+  // Use short URL if env var is configured, otherwise include ?b= fallback
+  const shortUrl = location.origin + location.pathname + '?id=' + id;
+  const longUrl  = shortUrl + '&b=' + encodeURIComponent(b);
+  // Try short URL — server will handle it if BLOB_STORE_BASE_URL is set
+  return storeBaseUrl ? shortUrl : longUrl;
 }
 
 // ── Welcome screen ────────────────────────────────────────────────────────────
