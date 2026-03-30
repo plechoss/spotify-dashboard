@@ -6,3 +6,6 @@ venv/
 
 # Raw export contains IP addresses — keep local only
 Spotify Extended Streaming History/
+
+# Processed data — personal, generated locally by process_data.py
+spotify/data/
