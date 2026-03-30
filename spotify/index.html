@@ -3,7 +3,24 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Spotify Replay</title>
+<title>Spotify Replay | Your Music Story</title>
+<meta name="description" content="Upload your Spotify export and explore top artists, songs, albums, habits, skips, and more with a shareable replay dashboard.">
+<link rel="canonical" href="https://www.pleskowi.cz/spotify/">
+<link rel="icon" type="image/svg+xml" href="/spotify/favicon.svg">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Spotify Replay">
+<meta property="og:title" content="Spotify Replay | Your Music Story">
+<meta property="og:description" content="Explore your Spotify listening history and share your stats in one link.">
+<meta property="og:url" content="https://www.pleskowi.cz/spotify/">
+<meta property="og:image" content="https://www.pleskowi.cz/spotify/og-cover.png">
+<meta property="og:image:secure_url" content="https://www.pleskowi.cz/spotify/og-cover.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Spotify Replay dashboard preview card">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Spotify Replay | Your Music Story">
+<meta name="twitter:description" content="Explore your Spotify listening history and share your stats in one link.">
+<meta name="twitter:image" content="https://www.pleskowi.cz/spotify/og-cover.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Mono:ital,wght@0,400;0,500;1,400&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -319,7 +336,10 @@ main{max-width:1340px;margin:0 auto;padding:0 28px 100px}
 .ppct{font-family:var(--mono);font-size:11px;color:var(--muted)}
 
 /* ── Podcast list ────────────────────────────────────────────────────── */
-.pod-list{display:flex;flex-direction:column;gap:2px}
+.pod-list{
+  display:flex;flex-direction:column;gap:2px;
+  max-height:500px;overflow:auto;
+}
 .podi{display:flex;align-items:center;gap:12px;padding:9px 8px;border-radius:8px;transition:background .15s}
 .podi:hover{background:var(--bg3)}
 .pod-rk{font-family:var(--mono);font-size:11px;color:var(--faint);width:26px;text-align:right;flex-shrink:0}
