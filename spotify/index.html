@@ -336,6 +336,85 @@ main{max-width:1340px;margin:0 auto;padding:0 28px 100px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
 ::-webkit-scrollbar-thumb:hover{background:var(--muted)}
+
+/* ── Nav share button ─────────────────────────────────────────────────── */
+.nav-share-btn{
+  margin-left:auto;flex-shrink:0;
+  font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;
+  background:none;border:1px solid var(--border);border-radius:6px;
+  color:var(--muted);padding:6px 13px;cursor:pointer;
+  transition:border-color .2s,color .2s;white-space:nowrap;
+}
+.nav-share-btn:hover{border-color:var(--gold);color:var(--gold)}
+
+/* ── Upload / Share panel ─────────────────────────────────────────────── */
+#upload-panel{
+  position:fixed;inset:0;z-index:500;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(11,10,9,.82);backdrop-filter:blur(8px);
+  opacity:0;pointer-events:none;transition:opacity .25s;
+}
+#upload-panel.open{opacity:1;pointer-events:all}
+.up-box{
+  background:var(--bg2);border:1px solid var(--border);border-radius:18px;
+  padding:36px 40px;width:100%;max-width:500px;
+  transform:translateY(12px);transition:transform .25s;
+  position:relative;
+}
+#upload-panel.open .up-box{transform:translateY(0)}
+.up-close{
+  position:absolute;top:16px;right:18px;
+  background:none;border:none;color:var(--muted);font-size:20px;
+  cursor:pointer;line-height:1;padding:4px;transition:color .15s;
+}
+.up-close:hover{color:var(--text)}
+.up-title{font-family:var(--hd);font-size:22px;font-weight:800;margin-bottom:6px}
+.up-sub{font-size:13px;color:var(--muted);margin-bottom:28px}
+.drop-zone{
+  border:1.5px dashed var(--border);border-radius:12px;
+  padding:28px 20px;text-align:center;cursor:pointer;
+  transition:border-color .2s,background .2s;margin-bottom:10px;
+  position:relative;
+}
+.drop-zone.over,.drop-zone:hover{border-color:var(--gold);background:var(--gold-dim)}
+.drop-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.dz-ico{font-size:28px;margin-bottom:8px}
+.dz-lbl{font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.08em}
+.dz-lbl strong{color:var(--text)}
+.dz-ok{font-family:var(--mono);font-size:11px;color:var(--green);margin-top:6px}
+.up-hint{font-size:11px;color:var(--faint);margin-bottom:24px;line-height:1.6}
+.up-hint code{font-family:var(--mono);color:var(--muted);font-size:10px}
+.up-btn{
+  width:100%;padding:13px;border-radius:9px;
+  background:var(--gold);color:var(--bg);border:none;
+  font-family:var(--hd);font-size:14px;font-weight:700;letter-spacing:.04em;
+  cursor:pointer;transition:opacity .2s;
+}
+.up-btn:disabled{opacity:.35;cursor:default}
+.up-btn:not(:disabled):hover{opacity:.85}
+.share-link-wrap{
+  margin-top:22px;display:none;
+  background:var(--bg3);border:1px solid var(--border);border-radius:10px;
+  padding:14px 16px;
+}
+.share-link-wrap.show{display:block}
+.sl-lbl{font-family:var(--mono);font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);margin-bottom:8px}
+.sl-row{display:flex;gap:8px;align-items:center}
+.sl-url{
+  flex:1;font-family:var(--mono);font-size:11px;color:var(--text);
+  background:none;border:none;outline:none;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.sl-copy{
+  flex-shrink:0;
+  background:none;border:1px solid var(--border);border-radius:6px;
+  color:var(--muted);font-family:var(--mono);font-size:10px;letter-spacing:.08em;
+  padding:5px 10px;cursor:pointer;transition:all .15s;
+}
+.sl-copy:hover{border-color:var(--gold);color:var(--gold)}
+.sl-copy.copied{border-color:var(--green);color:var(--green)}
+.up-err{font-family:var(--mono);font-size:11px;color:var(--red);margin-top:12px;display:none}
+.up-err.show{display:block}
 </style>
 </head>
 <body>
@@ -359,11 +438,49 @@ main{max-width:1340px;margin:0 auto;padding:0 28px 100px}
       <a class="nav-link" href="#habits">Habits</a>
       <a class="nav-link" href="#top">Top Lists</a>
       <a class="nav-link" href="#years">Years</a>
+      <a class="nav-link" href="#year-explorer">Explorer</a>
       <a class="nav-link" href="#devices">Devices</a>
       <a class="nav-link" href="#podcasts">Podcasts</a>
       <a class="nav-link" href="#history">History</a>
+      <button class="nav-share-btn" id="open-panel-btn">&#8593; Load · Share</button>
     </div>
   </nav>
+
+  <!-- Upload / Share panel -->
+  <div id="upload-panel">
+    <div class="up-box">
+      <button class="up-close" id="close-panel-btn">&#215;</button>
+      <div class="up-title">Load &amp; Share</div>
+      <div class="up-sub">Drop your Spotify data files to view and generate a shareable link.</div>
+
+      <div class="drop-zone" id="dz-stats">
+        <input type="file" accept=".json" id="fi-stats">
+        <div class="dz-ico">&#128196;</div>
+        <div class="dz-lbl"><strong>stats.json</strong><br>generated by process_data.py</div>
+        <div class="dz-ok" id="dz-stats-ok" style="display:none"></div>
+      </div>
+
+      <div class="drop-zone" id="dz-hist">
+        <input type="file" accept=".json" id="fi-hist">
+        <div class="dz-ico">&#128203;</div>
+        <div class="dz-lbl"><strong>history.json</strong> <span style="color:var(--faint)">(optional)</span></div>
+        <div class="dz-ok" id="dz-hist-ok" style="display:none"></div>
+      </div>
+
+      <div class="up-hint">Files stay private until you upload. Uploaded stats are stored for 30 days.</div>
+
+      <button class="up-btn" id="up-submit-btn" disabled>Upload &amp; Get Link</button>
+      <div class="up-err" id="up-err"></div>
+
+      <div class="share-link-wrap" id="share-link-wrap">
+        <div class="sl-lbl">Shareable link</div>
+        <div class="sl-row">
+          <input class="sl-url" id="sl-url" readonly>
+          <button class="sl-copy" id="sl-copy-btn">Copy</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <main>
 
@@ -451,6 +568,23 @@ main{max-width:1340px;margin:0 auto;padding:0 28px 100px}
         <div class="chart-wrap" style="height:190px"><canvas id="cYear"></canvas></div>
       </div>
       <div class="year-grid" id="year-grid"></div>
+    </section>
+
+    <!-- YEAR EXPLORER -->
+    <section id="year-explorer" class="section fi">
+      <div class="section-eyebrow">Deep Dive</div>
+      <h2 class="section-title">Year Explorer</h2>
+      <div class="card">
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:24px">
+          <select class="h-sel" id="ye-year" style="font-size:13px;padding:9px 16px"></select>
+          <div class="tab-bar" style="border:none;margin:0;gap:4px">
+            <button class="tab-btn on" data-ye="artists" style="padding:8px 16px">Artists</button>
+            <button class="tab-btn" data-ye="songs" style="padding:8px 16px">Songs</button>
+            <button class="tab-btn" data-ye="albums" style="padding:8px 16px">Albums</button>
+          </div>
+        </div>
+        <div id="ye-list" class="rank-list"></div>
+      </div>
     </section>
 
     <!-- DEVICES -->
@@ -552,6 +686,7 @@ async function init(){
     renderHabits(stats);
     renderTopLists(stats);
     renderYears(stats);
+    renderYearExplorer(stats);
     renderDevices(stats);
     renderPodcasts(stats);
     setupHistory();
@@ -782,6 +917,70 @@ function renderYears(stats){
     </div>`).join('');
 }
 
+// ── Year Explorer ─────────────────────────────────────────────────────────────
+function renderYearExplorer(stats){
+  const years=Object.keys(stats.by_year).sort().reverse();
+  const sel=$('ye-year');
+  sel.innerHTML=years.map(y=>`<option value="${y}">${y}</option>`).join('');
+
+  let activeTab='artists';
+
+  function renderList(){
+    const y=sel.value;
+    const yd=stats.by_year[y];
+    if(!yd) return;
+    const list=$('ye-list');
+
+    if(activeTab==='artists'){
+      const items=yd.top_artists||[];
+      const maxMs=items[0]?.ms||1;
+      list.innerHTML=items.map((a,i)=>`
+        <div class="rank-item" data-p="${(a.ms/maxMs).toFixed(3)}" style="--p:0">
+          <span class="rn">${i+1}</span>
+          <div class="rname">${esc(a.name)}</div>
+          <div class="rmeta">${fmtH(a.ms)}<br>${fmtNum(a.plays)} plays</div>
+        </div>`).join('');
+    } else if(activeTab==='songs'){
+      const items=yd.top_songs||[];
+      const maxMs=items[0]?.ms||1;
+      list.innerHTML=items.map((s,i)=>`
+        <div class="rank-item" data-p="${(s.ms/maxMs).toFixed(3)}" style="--p:0">
+          <span class="rn">${i+1}</span>
+          <div class="rname">${esc(s.name)}<small>${esc(s.artist)}</small></div>
+          <div class="rmeta">${fmtH(s.ms)}<br>${fmtNum(s.plays)} plays</div>
+        </div>`).join('');
+    } else {
+      const items=yd.top_albums||[];
+      const maxMs=items[0]?.ms||1;
+      list.innerHTML=items.map((a,i)=>`
+        <div class="rank-item" data-p="${(a.ms/maxMs).toFixed(3)}" style="--p:0">
+          <span class="rn">${i+1}</span>
+          <div class="rname">${esc(a.name)}<small>${esc(a.artist)}</small></div>
+          <div class="rmeta">${fmtH(a.ms)}<br>${fmtNum(a.plays)} plays</div>
+        </div>`).join('');
+    }
+    // animate bars
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{
+      list.querySelectorAll('.rank-item[data-p]').forEach(it=>{
+        it.style.setProperty('--p', it.dataset.p);
+      });
+    }));
+  }
+
+  sel.addEventListener('change', renderList);
+
+  document.querySelectorAll('[data-ye]').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      document.querySelectorAll('[data-ye]').forEach(b=>b.classList.remove('on'));
+      btn.classList.add('on');
+      activeTab=btn.dataset.ye;
+      renderList();
+    });
+  });
+
+  renderList();
+}
+
 // ── Devices ────────────────────────────────────────────────────────────────────
 function renderDevices(stats){
   const plats=Object.entries(stats.platforms);
@@ -975,6 +1174,112 @@ function setupFadeIns(){
   },{threshold:.08});
   document.querySelectorAll('.fi').forEach(el=>obs.observe(el));
 }
+
+// ── Upload / Share panel ───────────────────────────────────────────────────────
+(function(){
+  let statsData=null, histData=null;
+
+  const panel=$('upload-panel');
+  const openBtn=$('open-panel-btn');
+  const closeBtn=$('close-panel-btn');
+  const submitBtn=$('up-submit-btn');
+  const errEl=$('up-err');
+  const shareWrap=$('share-link-wrap');
+  const slUrl=$('sl-url');
+  const copyBtn=$('sl-copy-btn');
+
+  function openPanel(){
+    panel.classList.add('open');
+    // If already on a share URL, show the link immediately
+    const id=new URLSearchParams(location.search).get('id');
+    if(id){
+      slUrl.value=location.href;
+      shareWrap.classList.add('show');
+    }
+  }
+  openBtn.addEventListener('click',openPanel);
+  closeBtn.addEventListener('click',()=>panel.classList.remove('open'));
+  panel.addEventListener('click',e=>{if(e.target===panel)panel.classList.remove('open')});
+
+  function checkReady(){
+    submitBtn.disabled=!statsData;
+  }
+
+  function loadFile(file,isStats){
+    const r=new FileReader();
+    r.onload=e=>{
+      try{
+        const parsed=JSON.parse(e.target.result);
+        if(isStats){
+          statsData=parsed;
+          $('dz-stats-ok').textContent='&#10003; '+file.name+' loaded';
+          $('dz-stats-ok').style.display='block';
+        } else {
+          histData=parsed;
+          $('dz-hist-ok').textContent='&#10003; '+file.name+' loaded ('+parsed.length.toLocaleString()+' plays)';
+          $('dz-hist-ok').style.display='block';
+        }
+        checkReady();
+      } catch(err){
+        showErr('Could not parse '+file.name+' — is it valid JSON?');
+      }
+    };
+    r.readAsText(file);
+  }
+
+  function wireDropZone(dzId,inputId,isStats){
+    const dz=$(dzId), inp=$(inputId);
+    inp.addEventListener('change',()=>{if(inp.files[0])loadFile(inp.files[0],isStats)});
+    dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('over')});
+    dz.addEventListener('dragleave',()=>dz.classList.remove('over'));
+    dz.addEventListener('drop',e=>{
+      e.preventDefault();dz.classList.remove('over');
+      const f=e.dataTransfer.files[0];
+      if(f)loadFile(f,isStats);
+    });
+  }
+  wireDropZone('dz-stats','fi-stats',true);
+  wireDropZone('dz-hist','fi-hist',false);
+
+  function showErr(msg){
+    errEl.textContent=msg;errEl.classList.add('show');
+  }
+
+  submitBtn.addEventListener('click',async()=>{
+    if(!statsData) return;
+    submitBtn.disabled=true;
+    submitBtn.textContent='Uploading…';
+    errEl.classList.remove('show');
+    try{
+      const payload={stats:statsData};
+      if(histData) payload.history=histData;
+      const res=await fetch('/api/upload',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify(payload)
+      });
+      if(!res.ok) throw new Error('Upload failed ('+res.status+')');
+      const {id}=await res.json();
+      const url=location.origin+location.pathname+'?id='+id;
+      slUrl.value=url;
+      shareWrap.classList.add('show');
+      submitBtn.textContent='Uploaded!';
+      // Navigate to the share URL so the page re-renders with the uploaded data
+      setTimeout(()=>{location.href=url},900);
+    } catch(err){
+      showErr(err.message);
+      submitBtn.disabled=false;
+      submitBtn.textContent='Upload & Get Link';
+    }
+  });
+
+  copyBtn.addEventListener('click',()=>{
+    navigator.clipboard.writeText(slUrl.value).then(()=>{
+      copyBtn.textContent='Copied!';copyBtn.classList.add('copied');
+      setTimeout(()=>{copyBtn.textContent='Copy';copyBtn.classList.remove('copied')},2000);
+    });
+  });
+})();
 
 // ── Go ─────────────────────────────────────────────────────────────────────────
 init();

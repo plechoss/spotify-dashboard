@@ -140,22 +140,49 @@ def main():
         m = p["ts"][:7]; m_ms[m] += p["ms_played"]; m_pl[m] += 1
     by_month = [{"month": m, "ms": m_ms[m], "plays": m_pl[m]} for m in sorted(m_ms)]
 
-    y_ms  = defaultdict(int);  y_pl    = defaultdict(int)
-    y_art = defaultdict(set);  y_songs = defaultdict(set)
-    y_ams = defaultdict(lambda: defaultdict(int))
+    y_ms   = defaultdict(int); y_pl    = defaultdict(int)
+    y_art  = defaultdict(set); y_songs = defaultdict(set)
+    y_ams  = defaultdict(lambda: defaultdict(int))
+    y_apl  = defaultdict(lambda: defaultdict(int))
+    y_sms  = defaultdict(lambda: defaultdict(int))
+    y_spl  = defaultdict(lambda: defaultdict(int))
+    y_sal  = defaultdict(dict)
+    y_alms = defaultdict(lambda: defaultdict(int))
+    y_alpl = defaultdict(lambda: defaultdict(int))
     for p in music:
-        y = p["ts"][:4]; a = p.get("master_metadata_album_artist_name") or ""
-        t = p.get("master_metadata_track_name") or ""
-        y_ms[y] += p["ms_played"]; y_pl[y] += 1
-        if a: y_art[y].add(a); y_ams[y][a] += p["ms_played"]
-        if a and t: y_songs[y].add((a, t))
+        y  = p["ts"][:4]
+        a  = p.get("master_metadata_album_artist_name") or ""
+        t  = p.get("master_metadata_track_name")        or ""
+        al = p.get("master_metadata_album_album_name")  or ""
+        ms = p["ms_played"]
+        y_ms[y] += ms; y_pl[y] += 1
+        if a:
+            y_art[y].add(a)
+            y_ams[y][a] += ms; y_apl[y][a] += 1
+        if a and t:
+            k = (a, t)
+            y_songs[y].add(k)
+            y_sms[y][k] += ms; y_spl[y][k] += 1
+            if k not in y_sal[y]: y_sal[y][k] = al
+        if a and al:
+            k2 = (a, al)
+            y_alms[y][k2] += ms; y_alpl[y][k2] += 1
 
-    by_year = {
-        y: {"ms": y_ms[y], "plays": y_pl[y],
+    by_year = {}
+    for y in sorted(y_ms):
+        top_a = sorted(y_ams[y], key=y_ams[y].get, reverse=True)[:10]
+        top_s = sorted(y_sms[y], key=y_sms[y].get, reverse=True)[:10]
+        top_al = sorted(y_alms[y], key=y_alms[y].get, reverse=True)[:10]
+        by_year[y] = {
+            "ms": y_ms[y], "plays": y_pl[y],
             "unique_artists": len(y_art[y]), "unique_songs": len(y_songs[y]),
-            "top_artist": max(y_ams[y], key=y_ams[y].get) if y_ams[y] else None}
-        for y in sorted(y_ms)
-    }
+            "top_artist": max(y_ams[y], key=y_ams[y].get) if y_ams[y] else None,
+            "top_artists": [{"name": a, "ms": y_ams[y][a], "plays": y_apl[y][a]} for a in top_a],
+            "top_songs":   [{"artist": k[0], "name": k[1], "album": y_sal[y].get(k,""),
+                              "ms": y_sms[y][k], "plays": y_spl[y][k]} for k in top_s],
+            "top_albums":  [{"artist": k[0], "name": k[1],
+                              "ms": y_alms[y][k], "plays": y_alpl[y][k]} for k in top_al],
+        }
 
     # ── Temporal Patterns ────────────────────────────────────────────────────
     h_pl = [0]*24; h_ms = [0]*24; w_pl = [0]*7; w_ms = [0]*7
