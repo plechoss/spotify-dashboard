@@ -784,32 +784,33 @@ async function init(){
       stats = await r.json();
     }
 
-    renderOverview(stats);
-    renderTimeline(stats);
-    renderHabits(stats);
-    renderTopLists(stats);
-    renderYears(stats);
-    renderYearExplorer(stats);
-    renderDevices(stats);
-    renderPodcasts(stats);
-    setupHistory();
-    setupTabs();
-    setupNav();
-    setupFadeIns();
-
-    // Hide loader, show app
-    $('loading').style.opacity='0';
-    setTimeout(()=>{
-      $('loading').style.display='none';
-      $('app').classList.add('ready');
-      $('stat-grid').querySelectorAll('.stat-card').forEach((c,i)=>
-        setTimeout(()=>c.classList.add('in'), i*75)
-      );
-    },480);
+    renderAll(stats);
   } catch(e){
     $('load-msg').textContent = e.message;
     console.error(e);
   }
+}
+
+function renderAll(stats){
+  renderOverview(stats);
+  renderTimeline(stats);
+  renderHabits(stats);
+  renderTopLists(stats);
+  renderYears(stats);
+  renderYearExplorer(stats);
+  renderDevices(stats);
+  renderPodcasts(stats);
+  setupHistory();
+  setupTabs();
+  setupNav();
+  setupFadeIns();
+
+  $('welcome').classList.remove('show');
+  $('loading').style.display='none';
+  $('app').classList.add('ready');
+  $('stat-grid').querySelectorAll('.stat-card').forEach((c,i)=>
+    setTimeout(()=>c.classList.add('in'), i*75)
+  );
 }
 
 // ── Overview ───────────────────────────────────────────────────────────────────
@@ -1414,10 +1415,14 @@ async function uploadStats(stats) {
     errEl.classList.remove('show');
     try {
       const url = await uploadStats(processedStats);
+      const id = new URL(url).searchParams.get('id');
+      // Update URL without reload so the share link is bookmarkable
+      history.pushState({}, '', '?id=' + id);
       $('wl-sl-url').value = url;
       $('wl-share-wrap').classList.add('show');
       btn.textContent = 'Done!';
-      setTimeout(() => { location.href = url; }, 900);
+      // Render directly — no need to re-fetch what we already have
+      setTimeout(() => renderAll(processedStats), 300);
     } catch(err) {
       errEl.textContent = err.message;
       errEl.classList.add('show');
@@ -1508,9 +1513,11 @@ async function uploadStats(stats) {
     errEl.classList.remove('show');
     try {
       const url = await uploadStats(processedStats);
+      const id = new URL(url).searchParams.get('id');
+      history.pushState({}, '', '?id=' + id);
       slUrl.value = url; shareWrap.classList.add('show');
       submitBtn.textContent = 'Done!';
-      setTimeout(()=>{ location.href = url; }, 900);
+      setTimeout(() => { panel.classList.remove('open'); renderAll(processedStats); }, 300);
     } catch(err) {
       errEl.textContent = err.message; errEl.classList.add('show');
       submitBtn.disabled = false; submitBtn.textContent = 'Upload & Get Link';
