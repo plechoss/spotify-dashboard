@@ -234,6 +234,18 @@ main{max-width:1340px;margin:0 auto;padding:0 28px 100px}
 .top-table-wrap .dtable thead th{
   position:sticky;top:0;z-index:1;background:var(--bg2);
 }
+.table-scroll{
+  overflow-x:auto;
+  -webkit-overflow-scrolling:touch;
+}
+
+@media(max-width:900px){
+  .top-table-wrap .dtable,
+  .table-scroll .dtable,
+  .table-scroll .htable{
+    min-width:700px;
+  }
+}
 
 /* ── Tabs ────────────────────────────────────────────────────────────── */
 .tab-bar{display:flex;border-bottom:1px solid var(--border);margin-bottom:22px}
@@ -256,6 +268,7 @@ main{max-width:1340px;margin:0 auto;padding:0 28px 100px}
   display:grid;grid-template-columns:repeat(auto-fill,minmax(185px,1fr));
   gap:12px;
 }
+#ye-year-card{grid-template-columns:minmax(220px,1fr)}
 .ycard{
   background:var(--bg2);border:1px solid var(--border);border-radius:14px;
   padding:22px;transition:border-color .2s,transform .2s;
@@ -762,7 +775,6 @@ main{max-width:1340px;margin:0 auto;padding:0 28px 100px}
         <div class="card-title">Annual hours <small>per year</small></div>
         <div class="chart-wrap" style="height:190px"><canvas id="cYear"></canvas></div>
       </div>
-      <div class="year-grid" id="year-grid"></div>
     </section>
 
     <!-- YEAR EXPLORER -->
@@ -779,6 +791,7 @@ main{max-width:1340px;margin:0 auto;padding:0 28px 100px}
             <button class="tab-btn" data-ye="podcasts" style="padding:8px 16px">Podcasts</button>
           </div>
         </div>
+        <div class="year-grid" id="ye-year-card" style="margin-bottom:16px"></div>
         <div id="ye-list" class="rank-list"></div>
       </div>
     </section>
@@ -838,10 +851,12 @@ main{max-width:1340px;margin:0 auto;padding:0 28px 100px}
       <h2 class="section-title">Most Skipped<br>Songs</h2>
       <div class="card">
         <div class="card-title">Top 50 by skip count <small>from your full listening history</small></div>
-        <table class="dtable">
-          <thead><tr><th>#</th><th>Song</th><th>Artist</th><th>Album</th><th id="sk-sort-skips" class="sortable" data-sort-key="skip_count" style="text-align:right">Skips ↓</th><th id="sk-sort-plays" class="sortable" data-sort-key="plays" style="text-align:right">Plays</th><th id="sk-sort-rate" class="sortable" data-sort-key="skip_rate" style="text-align:right">Skip rate</th></tr></thead>
-          <tbody id="skipped-body"></tbody>
-        </table>
+        <div class="table-scroll">
+          <table class="dtable">
+            <thead><tr><th>#</th><th>Song</th><th>Artist</th><th>Album</th><th id="sk-sort-skips" class="sortable" data-sort-key="skip_count" style="text-align:right">Skips ↓</th><th id="sk-sort-plays" class="sortable" data-sort-key="plays" style="text-align:right">Plays</th><th id="sk-sort-rate" class="sortable" data-sort-key="skip_rate" style="text-align:right">Skip rate</th></tr></thead>
+            <tbody id="skipped-body"></tbody>
+          </table>
+        </div>
       </div>
     </section>
 
@@ -1104,9 +1119,13 @@ function renderTopLists(stats){
 
 function hideSkippedSection(){
   const sec = $('skipped');
-  if(sec) sec.style.display = 'none';
+  if(sec) sec.style.display = '';
   const link = document.querySelector('.nav-link[href="#skipped"]');
-  if(link) link.style.display = 'none';
+  if(link) link.style.display = '';
+  const body = $('skipped-body');
+  if(body){
+    body.innerHTML = '<tr><td class="ar" colspan="7">Skipped-song stats are unavailable for this dataset. Re-upload to include this section.</td></tr>';
+  }
 }
 
 function showSkippedSection(){
@@ -1240,27 +1259,13 @@ function renderYears(stats){
       scales:{x:{grid:{display:false}},y:{ticks:{callback:v=>`${v}h`},grid:{color:'rgba(44,39,32,.5)'}}}
     }
   });
-
-  $('year-grid').innerHTML=ys.map(([y,d])=>`
-    <div class="ycard">
-      <div class="ynum">${y}</div>
-      <div class="ys-lbl">Listening time</div>
-      <div class="ys-val">${fmtHm(d.ms)}</div>
-      <div class="ys-lbl">Plays</div>
-      <div class="ys-val">${fmtNum(d.plays)}</div>
-      <div class="ys-lbl">Artists</div>
-      <div class="ys-val">${fmtNum(d.unique_artists)}</div>
-      ${d.top_artist?`
-        <div class="y-artist">Top artist
-          <strong>${esc(d.top_artist)}</strong>
-        </div>`:''}
-    </div>`).join('');
 }
 
 // ── Year Explorer ─────────────────────────────────────────────────────────────
 function renderYearExplorer(stats){
   const years=Object.keys(stats.by_year).sort().reverse();
   const sel=$('ye-year');
+  const yearCard=$('ye-year-card');
   sel.innerHTML=years.map(y=>`<option value="${y}">${y}</option>`).join('');
 
   let activeTab='artists';
@@ -1270,6 +1275,23 @@ function renderYearExplorer(stats){
     const yd=stats.by_year[y];
     if(!yd) return;
     const list=$('ye-list');
+
+    if(yearCard){
+      yearCard.innerHTML = `
+        <div class="ycard">
+          <div class="ynum">${y}</div>
+          <div class="ys-lbl">Listening time</div>
+          <div class="ys-val">${fmtHm(yd.ms)}</div>
+          <div class="ys-lbl">Plays</div>
+          <div class="ys-val">${fmtNum(yd.plays)}</div>
+          <div class="ys-lbl">Artists</div>
+          <div class="ys-val">${fmtNum(yd.unique_artists)}</div>
+          ${yd.top_artist?`
+            <div class="y-artist">Top artist
+              <strong>${esc(yd.top_artist)}</strong>
+            </div>`:''}
+        </div>`;
+    }
 
     if(activeTab==='artists'){
       const items=yd.top_artists||[];
@@ -1480,10 +1502,12 @@ function renderHist(){
   const tp=Math.ceil(total/PG);
   $('hcnt').textContent=`${fmtNum(total)} plays`;
   $('hist-area').innerHTML=`
-    <table class="htable">
-      <thead><tr><th>Date</th><th>Artist</th><th>Song</th><th>Album</th><th style="text-align:right">Dur</th><th style="text-align:center">✓</th></tr></thead>
-      <tbody>${rows}</tbody>
-    </table>
+    <div class="table-scroll">
+      <table class="htable">
+        <thead><tr><th>Date</th><th>Artist</th><th>Song</th><th>Album</th><th style="text-align:right">Dur</th><th style="text-align:center">✓</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
     <div class="pager">
       <button class="pbtn" ${hPage===0?'disabled':''} onclick="gp(${hPage-1})">←</button>
       ${pgNums(hPage,tp).map(p=>p==='…'?`<span class="pinfo">…</span>`:`<button class="pbtn${p===hPage?' on':''}" onclick="gp(${p})">${p+1}</button>`).join('')}
