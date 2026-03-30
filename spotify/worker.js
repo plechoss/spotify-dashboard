@@ -22,6 +22,31 @@ function simplifyPlatform(raw) {
   return 'Other';
 }
 
+function hash32(str) {
+  let h = 2166136261;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return (h >>> 0).toString(16).padStart(8, '0');
+}
+
+function buildAccountFingerprint(music) {
+  const sample = [];
+  for (let i = 0; i < music.length && sample.length < 400; i++) {
+    const p = music[i];
+    const artist = p.master_metadata_album_artist_name || '';
+    const name = p.master_metadata_track_name || '';
+    const uri = p.spotify_track_uri || '';
+    if (!artist && !name && !uri) continue;
+    sample.push(`${p.ts.slice(0, 19)}|${uri}|${artist}|${name}|${p.ms_played}`);
+  }
+  if (!sample.length) return '';
+  const a = sample.join('\n');
+  const b = sample.slice().reverse().join('\n');
+  return `v1-${hash32(a)}${hash32(b)}-${sample.length}`;
+}
+
 function process(files) {
   // Only audio history files
   const audioFiles = files
@@ -309,6 +334,7 @@ function process(files) {
   const stats = {
     overview, top_artists: topArtists, top_songs: topSongs, top_albums: topAlbums,
     top_skipped_songs: topSkippedSongs,
+    account_fingerprint: buildAccountFingerprint(music),
     by_month: byMonth, by_year: byYear,
     by_hour: { plays: hPl, ms: hMs }, by_weekday: { plays: wPl, ms: wMs },
     platforms, countries, top_podcasts: topPodcasts,

@@ -234,11 +234,35 @@ def main():
         for s in sorted(sh_ms, key=sh_ms.get, reverse=True)[:50]
     ]
 
+    fp_parts = []
+    for p in music:
+        if len(fp_parts) >= 400:
+            break
+        artist = p.get("master_metadata_album_artist_name") or ""
+        name = p.get("master_metadata_track_name") or ""
+        uri = p.get("spotify_track_uri") or ""
+        if not (artist or name or uri):
+            continue
+        fp_parts.append(f"{p['ts'][:19]}|{uri}|{artist}|{name}|{p['ms_played']}")
+    def fnv32(text):
+        h = 2166136261
+        for ch in text:
+            h ^= ord(ch)
+            h = (h * 16777619) & 0xffffffff
+        return f"{h:08x}"
+
+    account_fingerprint = ""
+    if fp_parts:
+        a = "\n".join(fp_parts)
+        b = "\n".join(reversed(fp_parts))
+        account_fingerprint = f"v1-{fnv32(a)}{fnv32(b)}-{len(fp_parts)}"
+
     # ── Write stats.json ─────────────────────────────────────────────────────
     stats = dict(
         overview=overview, top_artists=top_artists,
         top_songs=top_songs, top_albums=top_albums,
         top_skipped_songs=top_skipped_songs,
+        account_fingerprint=account_fingerprint,
         by_month=by_month, by_year=by_year,
         by_hour={"plays": h_pl, "ms": h_ms},
         by_weekday={"plays": w_pl, "ms": w_ms},

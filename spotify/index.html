@@ -366,6 +366,22 @@ main{max-width:1340px;margin:0 auto;padding:0 28px 100px}
 .wl-btn:disabled{opacity:.35;cursor:default}
 .wl-btn:not(:disabled):hover{opacity:.85}
 .wl-note{font-size:11px;color:var(--faint);line-height:1.7;margin-top:14px}
+.data-help{
+  margin-top:14px;
+  background:var(--bg2);border:1px solid var(--border);border-radius:10px;
+  padding:12px 14px;
+}
+.data-help-title{
+  font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--gold);margin-bottom:8px;
+}
+.data-help ol{
+  margin:0;padding-left:17px;
+  font-size:11px;color:var(--muted);line-height:1.6;
+}
+.data-help li+li{margin-top:6px}
+.data-help a{color:var(--gold)}
+.data-help strong{color:var(--text);font-weight:600}
 .wl-err{font-family:var(--mono);font-size:11px;color:var(--red);margin-top:12px;display:none}
 .wl-err.show{display:block}
 /* file list */
@@ -400,14 +416,40 @@ main{max-width:1340px;margin:0 auto;padding:0 28px 100px}
 .wl-pvl{font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-top:4px}
 
 /* ── Nav share button ─────────────────────────────────────────────────── */
+.nav-actions{
+  margin-left:auto;
+  display:flex;align-items:center;gap:8px;
+  flex-shrink:0;
+}
 .nav-share-btn{
-  margin-left:auto;flex-shrink:0;
+  flex-shrink:0;
   font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;
   background:none;border:1px solid var(--border);border-radius:6px;
   color:var(--muted);padding:6px 13px;cursor:pointer;
   transition:border-color .2s,color .2s;white-space:nowrap;
 }
 .nav-share-btn:hover{border-color:var(--gold);color:var(--gold)}
+.nav-upgrade-tip{
+  width:24px;height:24px;border-radius:50%;
+  border:1px solid var(--border);
+  display:none;align-items:center;justify-content:center;
+  font-family:var(--mono);font-size:11px;
+  color:var(--muted);cursor:default;position:relative;
+  user-select:none;
+}
+.nav-upgrade-tip:hover,.nav-upgrade-tip:focus{border-color:var(--gold);color:var(--gold);outline:none}
+.nav-upgrade-tip .tip{
+  position:absolute;right:0;top:calc(100% + 10px);
+  width:min(320px,calc(100vw - 36px));
+  background:var(--bg2);border:1px solid var(--border);border-radius:10px;
+  padding:10px 12px;
+  color:var(--text);font-size:11px;line-height:1.5;
+  font-family:var(--mono);letter-spacing:.02em;
+  opacity:0;transform:translateY(-4px);pointer-events:none;
+  transition:opacity .15s,transform .15s;
+  z-index:30;
+}
+.nav-upgrade-tip:hover .tip,.nav-upgrade-tip:focus .tip{opacity:1;transform:translateY(0)}
 
 /* ── Upload / Share panel ─────────────────────────────────────────────── */
 #upload-panel{
@@ -525,7 +567,16 @@ main{max-width:1340px;margin:0 auto;padding:0 28px 100px}
       </div>
     </div>
 
-    <p class="wl-note">Request your data at <strong>Spotify → Account → Privacy → Download your data</strong>, select "Extended streaming history". You'll receive an email with a ZIP file — just upload that ZIP directly here.</p>
+    <div class="data-help">
+      <div class="data-help-title">How To Request Spotify Data</div>
+      <ol>
+        <li>Open <a href="https://www.spotify.com/us/account/privacy/" target="_blank" rel="noopener noreferrer">spotify.com/us/account/privacy</a>.</li>
+        <li>In <strong>Download your data</strong>, tick <strong>Extended streaming history</strong> (required for this dashboard). You can also keep <strong>Account data</strong> ticked.</li>
+        <li>Submit the request, then <strong>confirm it from the Spotify email</strong>.</li>
+        <li>Wait a couple of hours for Spotify to send a <strong>download link</strong>.</li>
+        <li>Download the ZIP and upload it here.</li>
+      </ol>
+    </div>
   </div>
 </div>
 
@@ -544,7 +595,13 @@ main{max-width:1340px;margin:0 auto;padding:0 28px 100px}
       <a class="nav-link" href="#devices">Devices</a>
       <a class="nav-link" href="#podcasts">Podcasts</a>
       <a class="nav-link" href="#history">History</a>
-      <button class="nav-share-btn" id="open-panel-btn">&#8593; Load · Share</button>
+      <div class="nav-actions">
+        <button class="nav-share-btn" id="open-panel-btn">&#8593; Load · Share</button>
+        <span class="nav-upgrade-tip" id="reload-tip" tabindex="0" aria-label="Reload data hint">
+          i
+          <span class="tip">Reload your Spotify export on this same link to unlock newer stats. For safety, updates are accepted only from the same Spotify account.</span>
+        </span>
+      </div>
     </div>
   </nav>
 
@@ -568,6 +625,16 @@ main{max-width:1340px;margin:0 auto;padding:0 28px 100px}
       </div>
 
       <div class="up-hint" style="margin-top:14px">Processed in your browser. Only stats are uploaded.</div>
+      <div class="data-help" style="margin-top:10px">
+        <div class="data-help-title">How To Request Spotify Data</div>
+        <ol>
+          <li>Open <a href="https://www.spotify.com/us/account/privacy/" target="_blank" rel="noopener noreferrer">spotify.com/us/account/privacy</a>.</li>
+          <li>In <strong>Download your data</strong>, tick <strong>Extended streaming history</strong> (required for this dashboard). You can also keep <strong>Account data</strong> ticked.</li>
+          <li>Submit the request, then <strong>confirm it from the Spotify email</strong>.</li>
+          <li>Wait a couple of hours for Spotify to send a <strong>download link</strong>.</li>
+          <li>Download the ZIP and upload it here.</li>
+        </ol>
+      </div>
 
       <button class="up-btn" id="up-submit-btn" disabled>Process &amp; Get Link</button>
       <div class="up-err" id="up-err"></div>
@@ -762,6 +829,15 @@ function fmtH(ms){ const h=Math.floor(ms/3.6e6); return h>=1000?`${(h/1000).toFi
 function fmtHm(ms){ const h=Math.floor(ms/3.6e6),m=Math.floor(ms%3.6e6/6e4); return h?`${h.toLocaleString()}h ${m}m`:`${m}m` }
 function fmtMm(ms){ const m=Math.floor(ms/6e4),s=Math.floor(ms%6e4/1e3); return `${m}:${String(s).padStart(2,'0')}` }
 function fmtNum(n){ return Number(n).toLocaleString() }
+function hasShareId(){
+  const id = new URLSearchParams(location.search).get('id') || '';
+  return /^[a-f0-9]{10}$/.test(id);
+}
+function setupReloadHint(){
+  const hint = $('reload-tip');
+  if(!hint) return;
+  hint.style.display = hasShareId() ? 'inline-flex' : 'none';
+}
 
 // ── Chart defaults ─────────────────────────────────────────────────────────────
 Chart.defaults.color = '#877d6f';
@@ -834,6 +910,7 @@ function renderAll(stats){
   $('welcome').classList.remove('show');
   $('loading').style.display='none';
   $('app').classList.add('ready');
+  setupReloadHint();
   $('stat-grid').querySelectorAll('.stat-card').forEach((c,i)=>
     setTimeout(()=>c.classList.add('in'), i*75)
   );
@@ -1455,16 +1532,32 @@ function wireDropZone(dzId, inputId, onFileData) {
 }
 
 async function uploadStats(stats) {
-  const res = await fetch('/api/upload', {
+  const params = new URLSearchParams(location.search);
+  const id = params.get('id') || '';
+  const b = params.get('b') || '';
+  const updateParams = new URLSearchParams();
+  if(/^[a-f0-9]{10}$/.test(id)){
+    updateParams.set('id', id);
+    if(b) updateParams.set('b', b);
+  }
+  const endpoint = '/api/upload' + (updateParams.toString() ? `?${updateParams.toString()}` : '');
+
+  const res = await fetch(endpoint, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ stats })
   });
-  if (!res.ok) throw new Error('Upload failed (' + res.status + ')');
-  const { id, blobUrl, canResolveById } = await res.json();
-  const b = btoa(blobUrl);
-  const shortUrl = location.origin + location.pathname + '?id=' + id;
-  const longUrl  = shortUrl + '&b=' + encodeURIComponent(b);
+  let payload = null;
+  try { payload = await res.json(); } catch { payload = null; }
+  if (!res.ok) throw new Error(payload?.error || ('Upload failed (' + res.status + ')'));
+  const nextId = payload?.id;
+  const blobUrl = payload?.blobUrl;
+  const canResolveById = !!payload?.canResolveById;
+  if(!nextId || !blobUrl) throw new Error('Upload failed (invalid server response)');
+
+  const b64 = btoa(blobUrl);
+  const shortUrl = location.origin + location.pathname + '?id=' + nextId;
+  const longUrl  = shortUrl + '&b=' + encodeURIComponent(b64);
   // Use short URL only when backend confirms it can reconstruct blob URL by ID.
   return canResolveById ? shortUrl : longUrl;
 }
@@ -1557,9 +1650,9 @@ async function uploadStats(stats) {
     errEl.classList.remove('show');
     try {
       const url = await uploadStats(processedStats);
-      const id = new URL(url).searchParams.get('id');
       // Update URL without reload so the share link is bookmarkable
       history.pushState({}, '', url.replace(location.origin, ''));
+      setupReloadHint();
       $('wl-sl-url').value = url;
       $('wl-share-wrap').classList.add('show');
       btn.textContent = 'Done!';
@@ -1655,8 +1748,8 @@ async function uploadStats(stats) {
     errEl.classList.remove('show');
     try {
       const url = await uploadStats(processedStats);
-      const id = new URL(url).searchParams.get('id');
       history.pushState({}, '', url.replace(location.origin, ''));
+      setupReloadHint();
       slUrl.value = url; shareWrap.classList.add('show');
       submitBtn.textContent = 'Done!';
       setTimeout(() => { panel.classList.remove('open'); renderAll(processedStats); }, 300);
