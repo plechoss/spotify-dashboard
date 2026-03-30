@@ -227,6 +227,9 @@ main{max-width:1340px;margin:0 auto;padding:0 28px 100px}
 .dtable .n{font-family:var(--mono);font-size:10px;color:var(--faint);width:36px}
 .dtable .ar{color:var(--muted);font-size:12px}
 .dtable .r{font-family:var(--mono);font-size:11px;color:var(--muted);text-align:right}
+.dtable th.sortable{cursor:pointer;user-select:none}
+.dtable th.sortable:hover{color:var(--text)}
+.dtable th.sortable.active{color:var(--gold)}
 
 /* ── Tabs ────────────────────────────────────────────────────────────── */
 .tab-bar{display:flex;border-bottom:1px solid var(--border);margin-bottom:22px}
@@ -726,19 +729,6 @@ main{max-width:1340px;margin:0 auto;padding:0 28px 100px}
       </div>
     </section>
 
-    <!-- MOST SKIPPED -->
-    <section id="skipped" class="section fi">
-      <div class="section-eyebrow">Skip Patterns</div>
-      <h2 class="section-title">Most Skipped<br>Songs</h2>
-      <div class="card">
-        <div class="card-title">Top 100 by skip count <small>from your full listening history</small></div>
-        <table class="dtable">
-          <thead><tr><th>#</th><th>Song</th><th>Artist</th><th>Album</th><th style="text-align:right">Skips</th><th style="text-align:right">Plays</th><th style="text-align:right">Skip rate</th></tr></thead>
-          <tbody id="skipped-body"></tbody>
-        </table>
-      </div>
-    </section>
-
     <!-- YEARS -->
     <section id="years" class="section fi">
       <div class="section-eyebrow">A Decade &amp; More</div>
@@ -814,6 +804,19 @@ main{max-width:1340px;margin:0 auto;padding:0 28px 100px}
           <div class="h-cnt" id="hcnt"></div>
         </div>
         <div id="hist-area"><div class="h-loading">History loads when you scroll here…</div></div>
+      </div>
+    </section>
+
+    <!-- MOST SKIPPED -->
+    <section id="skipped" class="section fi">
+      <div class="section-eyebrow">Skip Patterns</div>
+      <h2 class="section-title">Most Skipped<br>Songs</h2>
+      <div class="card">
+        <div class="card-title">Top 100 by skip count <small>from your full listening history</small></div>
+        <table class="dtable">
+          <thead><tr><th>#</th><th>Song</th><th>Artist</th><th>Album</th><th id="sk-sort-skips" class="sortable" data-sort-key="skip_count" style="text-align:right">Skips ↓</th><th id="sk-sort-plays" class="sortable" data-sort-key="plays" style="text-align:right">Plays</th><th id="sk-sort-rate" class="sortable" data-sort-key="skip_rate" style="text-align:right">Skip rate</th></tr></thead>
+          <tbody id="skipped-body"></tbody>
+        </table>
       </div>
     </section>
 
@@ -1083,29 +1086,105 @@ function showSkippedSection(){
   if(link) link.style.display = '';
 }
 
+let SKIPPED_ROWS = [];
+let SKIPPED_SORT = { key: 'skip_count', dir: 'desc' };
+let SKIPPED_SORT_BOUND = false;
+
+function sortSkippedRows(rows){
+  const key = SKIPPED_SORT.key;
+  const dir = SKIPPED_SORT.dir === 'asc' ? 1 : -1;
+  return [...rows].sort((a,b)=>{
+    const av = Number(a[key] || 0);
+    const bv = Number(b[key] || 0);
+    if(av !== bv) return (av - bv) * dir;
+    if(a.skip_count !== b.skip_count) return b.skip_count - a.skip_count;
+    if(a.plays !== b.plays) return b.plays - a.plays;
+    return `${a.artist}\u0000${a.name}`.localeCompare(`${b.artist}\u0000${b.name}`);
+  });
+}
+
+function updateSkippedSortHeaders(){
+  const headers = [
+    ['sk-sort-skips', 'skip_count', 'Skips'],
+    ['sk-sort-plays', 'plays', 'Plays'],
+    ['sk-sort-rate', 'skip_rate', 'Skip rate'],
+  ];
+  headers.forEach(([id, key, label])=>{
+    const el = $(id);
+    if(!el) return;
+    const active = SKIPPED_SORT.key === key;
+    el.classList.toggle('active', active);
+    if(active){
+      el.textContent = `${label} ${SKIPPED_SORT.dir === 'desc' ? '↓' : '↑'}`;
+    } else {
+      el.textContent = label;
+    }
+  });
+}
+
+function bindSkippedSort(){
+  if(SKIPPED_SORT_BOUND) return;
+  [
+    ['sk-sort-skips', 'skip_count'],
+    ['sk-sort-plays', 'plays'],
+    ['sk-sort-rate', 'skip_rate'],
+  ].forEach(([id, key])=>{
+    const el = $(id);
+    if(!el) return;
+    el.addEventListener('click', ()=>{
+      if(SKIPPED_SORT.key === key){
+        SKIPPED_SORT.dir = SKIPPED_SORT.dir === 'desc' ? 'asc' : 'desc';
+      } else {
+        SKIPPED_SORT = { key, dir: 'desc' };
+      }
+      renderSkippedTable();
+    });
+  });
+  SKIPPED_SORT_BOUND = true;
+}
+
+function renderSkippedTable(){
+  const body = $('skipped-body');
+  if(!body) return;
+  const rows = sortSkippedRows(SKIPPED_ROWS);
+  body.innerHTML = rows.map((s,i)=>`
+    <tr>
+      <td class="n">${i+1}</td>
+      <td>${esc(s.name || '')}</td>
+      <td class="ar">${esc(s.artist || '')}</td>
+      <td class="ar">${esc(s.album || '')}</td>
+      <td class="r">${fmtNum(s.skip_count || 0)}</td>
+      <td class="r">${fmtNum(s.plays || 0)}</td>
+      <td class="r">${((s.skip_rate || 0) * 100).toFixed(1)}%</td>
+    </tr>`).join('');
+  updateSkippedSortHeaders();
+}
+
 function renderSkipped(stats){
-  const rows = (stats.top_skipped_songs || []).filter(s => (s.skip_count || 0) > 0);
+  const rows = (stats.top_skipped_songs || [])
+    .map(s=>{
+      const plays = Number(s.plays || 0);
+      const skips = Number(s.skip_count || 0);
+      const rate = typeof s.skip_rate === 'number' ? s.skip_rate : (plays ? skips / plays : 0);
+      return {
+        name: s.name || '',
+        artist: s.artist || '',
+        album: s.album || '',
+        plays,
+        skip_count: skips,
+        skip_rate: rate,
+      };
+    })
+    .filter(s => s.skip_count > 0);
+
   if(!rows.length){
     hideSkippedSection();
     return;
   }
   showSkippedSection();
-
-  $('skipped-body').innerHTML = rows.map((s,i)=>{
-    const plays = Number(s.plays || 0);
-    const skips = Number(s.skip_count || 0);
-    const rate = typeof s.skip_rate === 'number' ? s.skip_rate : (plays ? skips / plays : 0);
-    return `
-      <tr>
-        <td class="n">${i+1}</td>
-        <td>${esc(s.name || '')}</td>
-        <td class="ar">${esc(s.artist || '')}</td>
-        <td class="ar">${esc(s.album || '')}</td>
-        <td class="r">${fmtNum(skips)}</td>
-        <td class="r">${fmtNum(plays)}</td>
-        <td class="r">${(rate * 100).toFixed(1)}%</td>
-      </tr>`;
-  }).join('');
+  SKIPPED_ROWS = rows;
+  bindSkippedSort();
+  renderSkippedTable();
 }
 
 function animateRankBars(listId){
