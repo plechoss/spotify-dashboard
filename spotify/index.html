@@ -248,7 +248,8 @@ main{max-width:1340px;margin:0 auto;padding:0 28px 100px}
 .dtable th.sortable:hover{color:var(--text)}
 .dtable th.sortable.active{color:var(--gold)}
 .top-table-wrap{max-height:500px;overflow:auto}
-.top-table-wrap .dtable thead th{
+.top-table-wrap .dtable thead th,
+.top-table-wrap .htable thead th{
   position:sticky;top:0;z-index:1;background:var(--bg2);
 }
 .table-scroll{
@@ -1554,7 +1555,7 @@ function renderHist(){
   const tp=Math.ceil(total/PG);
   $('hcnt').textContent=`${fmtNum(total)} plays`;
   $('hist-area').innerHTML=`
-    <div class="table-scroll">
+    <div class="table-scroll top-table-wrap">
       <table class="htable">
         <thead><tr><th>Date</th><th>Artist</th><th>Song</th><th>Album</th><th style="text-align:right">Dur</th><th style="text-align:center">✓</th></tr></thead>
         <tbody>${rows}</tbody>
